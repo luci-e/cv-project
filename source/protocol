@@ -28,7 +28,7 @@ Command move response
 
 ----------------------------------------------------------------------------------------------------
 
-Command move camera
+Command move camera request
 
 {
 	"cmd" : "move_cam",
@@ -51,7 +51,7 @@ Command move camera response
 
 ----------------------------------------------------------------------------------------------------
 
-Command track person
+Command track person request
 
 {
 	"cmd" : "track",
@@ -74,7 +74,7 @@ Command track response
 
 ----------------------------------------------------------------------------------------------------
 
-Command untrack person
+Command untrack person request
 
 {
 	"cmd" : "untrack"
@@ -92,7 +92,7 @@ Command untrack response
 
 ----------------------------------------------------------------------------------------------------
 
-Command attack person
+Command attack person request
 
 {
 	"cmd" : "attack",
@@ -115,7 +115,7 @@ Command attack response
 
 ----------------------------------------------------------------------------------------------------
 
-Command laser control
+Command laser control request
 
 {
 	"cmd" : "laser_ctrl",
@@ -138,9 +138,27 @@ Command laser control response
 
 ----------------------------------------------------------------------------------------------------
 
+Command list request
+
+{
+	"cmd" : "list_faces",
+}
+
+Command list response
+
+{
+	"faces" : [
+		"id"
+	]
+}
+
+"faces" is a, possibly empty, list of faces ids.
+
+----------------------------------------------------------------------------------------------------
+
 >>>>>>>>>> SERVER COMMANDS <<<<<<<<<<
 
-Command list
+Command list request
 
 {
 	"cmd" : "list"
