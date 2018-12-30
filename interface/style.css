@@ -1,0 +1,62 @@
+.rounded {
+	border-radius: 10px;
+}
+
+#main {
+	border:1px solid black;
+	background: rgb(230, 230, 230);
+	border-radius: 5px;
+	padding: 20px;
+	width: 1000px;
+	display: inline-block;
+}
+
+#wrapper {
+	text-align: center;
+}
+
+#streamWindow {
+	border:1px solid black;
+	width: 640px;
+	height: 480px;
+	display: inline-block;
+}
+
+#listWindow {
+	border: 1px solid black;
+	width:320px;
+	height:480px;
+	margin-left:10px;
+	display: inline-block;
+}
+
+#commandWindow {
+	width: 100%;
+	padding: 10px;
+	text-align: left
+}
+
+#buttonArea {
+	display: inline-block;
+	text-align: left;
+}
+
+li {
+	text-align: center;
+	display:flex;
+	flex-direction: row;
+	justify-content: center;
+	align-content: center;
+}
+
+.button {
+	width:40px;
+	height:40px;
+	display:flex;
+	border:1px solid black;
+	border-radius: 5px;
+	margin:4px;
+	justify-content: center;
+	align-content: center;
+	flex-direction: row;
+}
