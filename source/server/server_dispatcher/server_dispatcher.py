@@ -7,6 +7,8 @@ import time
 import sys
 import argparse
 
+from threading import Thread
+
 PORT = 80
 BASE_DIR = ''
 
@@ -16,7 +18,7 @@ class shal_request_handler( http.server.SimpleHTTPRequestHandler ):
 	    #TODO : add code to send initial json list
 
 
-class HTTP_Server_Thread(Thread):    
+class HTTP_server_thread(Thread):    
     def __init__(self):
         Thread.__init__(self)
         self.done = False
@@ -46,7 +48,7 @@ def main():
 	os.chdir(BASE_DIR)
 
 	# Start server
-	http_thread = HTTP_Server_Thread()
+	http_thread = HTTP_server_thread()
 	http_thread.start()
 
 if __name__ == '__main__':
