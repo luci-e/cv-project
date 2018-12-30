@@ -1,0 +1,230 @@
+Da PRoTOcOL
+
+>>>>>>>>>> COMMANDS <<<<<<<<<<
+
+Command move request
+
+{
+	"cmd" : "move",
+	"params" : {
+		"direction" : [ "direction", "direction" ]
+	}
+}
+
+"direction" is "forward" or "back" or "left" or "right" and the sensible combinations i.e. :
+"forward" "right", "forward" "left", "back" "left", "back" "right". 
+If you feed "forward" "back" or "left" "right" or "left" "left" or "right" "right" or "forward" "forward" or "back" "back" to the robot you will be immediately terminated with great pain.
+Note : we can't actually move left or right, we can rotate CCW or CW, however for the sake of keeping the move commnad as a single message I think it's ok to leave this as is.
+
+Command move response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "blocked" or "bad_direction" or "youre_a_bad_person"
+
+----------------------------------------------------------------------------------------------------
+
+Command move camera
+
+{
+	"cmd" : "move_cam",
+	"params" : {
+		"direction" : "direction"
+	}
+}
+
+"direction" is "up" or "down"
+
+Command move camera response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "top_limit" or "bottom_limit" or "bad_direction"
+
+----------------------------------------------------------------------------------------------------
+
+Command track person
+
+{
+	"cmd" : "track",
+	"params" : {
+		"id" : "id"
+	}
+}
+
+"id" is any string, this should be one of the people supplied from the server ( see later )
+
+Command track response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "unknown_id"
+
+----------------------------------------------------------------------------------------------------
+
+Command untrack person
+
+{
+	"cmd" : "untrack"
+}
+
+Command untrack response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "no_active_tracking"
+
+----------------------------------------------------------------------------------------------------
+
+Command attack person
+
+{
+	"cmd" : "attack",
+	"params" : {
+		"id" : "id"
+	}
+}
+
+"id" is any string, this should be one of the people supplied from the server
+
+Command attack response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "unknown_id"
+
+----------------------------------------------------------------------------------------------------
+
+Command laser control
+
+{
+	"cmd" : "laser_ctrl",
+	"params" : {
+		"action" : "action"
+	}
+}
+
+"action" is "on" or "off"
+
+Command laser control response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is not null
+"failure_reason" is "bad_action"
+
+----------------------------------------------------------------------------------------------------
+
+
+
+>>>>>>>>>> SERVER MESSAGES <<<<<<<<<<
+
+The server may asynchronously send messages to the client notifying it of event. The client must not reply to these 
+
+Event person entered
+
+{
+	"event" : "person_entered",
+	"data" : {
+		"id" : "id"
+	}
+}
+
+"id" is the id assigned to the person if it is a known person, otherwise it is an Anon_x like id.
+Sent when a person enters the view of the camera.
+
+----------------------------------------------------------------------------------------------------
+
+Event person left
+
+{
+	"event" : "person_left",
+	"data" : {
+		"id" : "id"
+	}
+}
+
+"id" is the id of the person who left the view.
+Sent when a person leaves the view of the camera.
+
+----------------------------------------------------------------------------------------------------
+
+Event tracking lost
+
+{
+	"event" : "tracking_lost",
+	"data" : {
+		"id" : "id"
+	}
+}
+
+"id" is the id of the tracked person.
+Sent when the tracked person leaves the view of the camera.
+
+----------------------------------------------------------------------------------------------------
+
+Event tracking resumed
+
+{
+	"event" : "tracking_resumed",
+	"data" : {
+		"id" : "id"
+	}
+}
+
+"id" is the id of the tracked person.
+Sent after a tracking_lost event if the person comes back in the view of the camera.
+
+----------------------------------------------------------------------------------------------------
+
+Event obstacle hit
+
+{
+	"event" : "obstacle_hit",
+	"data" : {
+		"distance" : distance
+	}
+}
+
+distance is the value of the distance.
+Sent after the frontal distance to an obstacle is <= of a threhsold.
+
+----------------------------------------------------------------------------------------------------
+
+Event battery low
+
+{
+	"event" : "battery_low",
+	"data" : {
+		"amount" : percentage
+	}
+}
+
+percentage is the percentage of the battery left.
+Sent when the battery level is <= of a threhsold. This event is not implemented lol.
+
+----------------------------------------------------------------------------------------------------
+
