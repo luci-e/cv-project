@@ -1,6 +1,6 @@
 Da PRoTOcOL
 
->>>>>>>>>> COMMANDS <<<<<<<<<<
+>>>>>>>>>> ROVER COMMANDS <<<<<<<<<<
 
 Command move request
 
@@ -138,6 +138,33 @@ Command laser control response
 
 ----------------------------------------------------------------------------------------------------
 
+>>>>>>>>>> SERVER COMMANDS <<<<<<<<<<
+
+Command list
+
+{
+	"cmd" : "list"
+}
+
+
+Command response
+
+{
+	"rovers" : [
+		{
+			"id" : "id",
+			"address" : "address",
+			"port" : "port"
+		}
+	]
+}
+
+"id" is the id of the rorver
+"address" is actually muda since the public address is the same
+"port" is the port on which the rover communicates
+
+
+----------------------------------------------------------------------------------------------------
 
 
 >>>>>>>>>> SERVER MESSAGES <<<<<<<<<<
@@ -228,3 +255,6 @@ Sent when the battery level is <= of a threhsold. This event is not implemented 
 
 ----------------------------------------------------------------------------------------------------
 
+>>>>>>>>>> COMMUNICATION <<<<<<<<<<
+
+The client always initiates the communication. The first connection happens on port 80. The server responds with the web page and a list of available rovers in the same format as a response to the list command. The client must then open websockets to each individual rover it wishes to communicate with. 
