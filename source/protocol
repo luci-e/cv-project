@@ -23,7 +23,7 @@ Command move response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "blocked" or "bad_direction" or "youre_a_bad_person"
 
 ----------------------------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ Command move camera response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "top_limit" or "bottom_limit" or "bad_direction"
 
 ----------------------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ Command track response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "unknown_id"
 
 ----------------------------------------------------------------------------------------------------
@@ -87,7 +87,7 @@ Command untrack response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "no_active_tracking"
 
 ----------------------------------------------------------------------------------------------------
@@ -110,8 +110,28 @@ Command attack response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "unknown_id"
+
+----------------------------------------------------------------------------------------------------
+
+Command stop attacking person request
+
+{
+	"cmd" : "stop_attack",
+}
+
+"id" is any string, this should be one of the people supplied from the server
+
+Command attack response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "no_active_attacking"
 
 ----------------------------------------------------------------------------------------------------
 
@@ -133,12 +153,12 @@ Command laser control response
 	"info" : "failure_reason"
 }
 
-"msg" is "ok" or "failed", if "failed", "info" is not null
+"msg" is "ok" or "failed", if "failed", "info" is present
 "failure_reason" is "bad_action"
 
 ----------------------------------------------------------------------------------------------------
 
-Command list request
+Command list faces request
 
 {
 	"cmd" : "list_faces",
@@ -153,6 +173,24 @@ Command list response
 }
 
 "faces" is a, possibly empty, list of faces ids.
+
+----------------------------------------------------------------------------------------------------
+
+The server can also send the following messages:
+
+{
+	"msg" : "failed",
+	"info" : "parsing_error"
+}
+
+in case of badly formatted.
+
+{
+	"msg" : "failed",
+	"info" : "unknown_cmd"
+}
+
+if the command is not valid
 
 ----------------------------------------------------------------------------------------------------
 
