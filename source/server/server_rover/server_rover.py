@@ -10,7 +10,6 @@ import websockets
 from enum import Flag
 from threading import Thread
 
-<<<<<<< HEAD
 PORT = 80
 rover_hal = rover_HAL()
 
