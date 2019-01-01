@@ -1,7 +1,5 @@
 'use strict';
 
-import RoverHandler from './RoverHandler.js'
-
 export default class ConnectionHandler {
 	constructor(serverAddress, connectionMethod) {
 		this.serverAddress = serverAddress;
@@ -10,28 +8,57 @@ export default class ConnectionHandler {
 		this.socket;
 	}
 
-	addRover(roverHandler) {
-
-		console.log("Rover: \""+roverHandler.getIdentifier()+"\" added.");
-
-		this.rovers.push(roverHandler);
-	}
-
-
 	connectToServer() {
-		this.socket = new WebSocket(this.serverAddress, [this.connectionMethod]);
+		if(this.connectionMethod)
+			this.socket = new WebSocket(this.serverAddress, [this.connectionMethod]);
+		else
+			this.socket = new WebSocket(this.serverAddress);
+
+
+		var that = this;
+		this.socket.onmessage = function(event) {
+			that.handleAnswer(event);
+		}
+
+		this.socket.onconnect = function(event) {
+			console.log("Succesfully connected to remove server!");
+			that.sendTestMessage();
+		}
+
+		this.socket.onclose = function(event) {
+			console.log("Connection to remote server closed!")
+		}
+
+		this.socket.onerror = function(event) {
+			console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
+		}
+
+		this.socket.onopen = function(event) {
+			console.log("WebSocket connection opened!");
+		}
+
+		console.log(this.socket);
 	}
 
 	getSocket() {
-		return this.getSocket;
+		return this.socket;
 	}
 
 
+	handleAnswer(message) {
+		console.log("Received message from server: "+message)
+	}
+
 	sendTestMessage() {
 		var msg = {
-			text: "KOCCHI WO MIRO!"
+			text: "KOCCHI WO MIRO!",
+			cmd: "attack"
 		};
 
-		getSocket().emit('sendMessage', msg);
+
+		console.log(this.getSocket());
+		this.getSocket().send(JSON.stringify(msg));
+
+		console.log("Test Message sent to server!");
 	}
 }

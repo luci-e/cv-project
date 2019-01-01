@@ -11,7 +11,7 @@ from enum import Flag
 from threading import Thread
 
 PORT = 80
-rover_hal = rover_HAL()
+#rover_hal = rover_HAL()
 
 class DIRECTION( Flag ):
     FORWARD = 1

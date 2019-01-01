@@ -1,3 +1,5 @@
+//---------- UNUSED CLASS -------------
+
 export default class RoverHandler {
 
 	constructor(identifier) {
