@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+    </head>
+    <body>
+        <script>
+
+            var ws = new WebSocket("ws://127.0.0.1:80"), messages = document.createElement('ul');
+
+            function sendMessage(msg){
+                // Wait until the state of the socket is not ready and send the message when it is...
+                waitForSocketConnection(ws, function(){
+                    console.log("message sent!!!");
+                    ws.send(msg);
+                });
+            }
+
+            // Make the function wait until the connection is made...
+            function waitForSocketConnection(socket, callback){
+                setTimeout(
+                    function () {
+                        if (socket.readyState === 1) {
+                            console.log("Connection is made")
+                            if(callback != null){
+                                callback();
+                            }
+                            return;
+
+                        } else {
+                            console.log("wait for connection...")
+                            waitForSocketConnection(socket, callback);
+                        }
+
+                    }, 5); // wait 5 milisecond for the connection...
+            }
+
+            
+
+            var msg = { cmd : "move", params : { direction : ["forward"] } };
+
+            ws.onmessage = function (event) {
+                var messages = document.getElementsByTagName('ul')[0],
+                    message = document.createElement('li'),
+                    content = document.createTextNode(event.data);
+                message.appendChild(content);
+                messages.appendChild(message);
+            };
+
+            sendMessage(JSON.stringify(msg));
+
+            document.body.appendChild(messages);
+        </script>
+    </body>
+</html>
