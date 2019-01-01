@@ -15,12 +15,14 @@ export default class ConnectionHandler {
 			this.socket = new WebSocket(this.serverAddress);
 
 
+
+
 		var that = this;
 		this.socket.onmessage = function(event) {
 			that.handleAnswer(event);
 		}
 
-		this.socket.onconnect = function(event) {
+		this.socket.onopen = function(event) {
 			console.log("Succesfully connected to remove server!");
 			that.sendTestMessage();
 		}
@@ -33,9 +35,11 @@ export default class ConnectionHandler {
 			console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
 		}
 
-		this.socket.onopen = function(event) {
-			console.log("WebSocket connection opened!");
-		}
+
+
+        setTimeout(function() {
+        	console.log(that.getSocket().readyState);
+        }, 5);
 
 		console.log(this.socket);
 	}
