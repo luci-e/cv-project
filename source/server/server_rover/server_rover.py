@@ -10,10 +10,6 @@ import websockets
 from enum import Flag
 from threading import Thread
 
-PORT = 80
-rover_hal = rover_HAL()
-
-
 # The enum of the possible directions the rover can move
 class ROVER_DIRECTION( Flag ):
     FORWARD = 1
