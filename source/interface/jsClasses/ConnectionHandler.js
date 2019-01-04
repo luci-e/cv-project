@@ -66,3 +66,6 @@ export default class ConnectionHandler {
 		console.log("Test Message sent to server!");
 	}
 }
+
+
+var player = new JSMpeg.Player();
