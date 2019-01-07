@@ -6,6 +6,7 @@ export default class ConnectionHandler {
 		this.connectionMethod = connectionMethod;
 		this.rovers = [];
 		this.socket;
+		this.lastMsg;
 	}
 
 	connectToServer() {
@@ -18,13 +19,15 @@ export default class ConnectionHandler {
 
 
 		var that = this;
-		this.socket.onmessage = function(event) {
-			that.handleAnswer(event);
-		}
+		this.socket.onmessage = this.handleAnswer;
 
 		this.socket.onopen = function(event) {
 			console.log("Succesfully connected to remove server!");
-			that.sendTestMessage();
+			that.sendMoveForward();
+		}
+
+		this.socket.onmessage = function (answer) {
+			that.handleAnswer(answer);
 		}
 
 		this.socket.onclose = function(event) {
@@ -35,13 +38,6 @@ export default class ConnectionHandler {
 			console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
 		}
 
-
-
-        setTimeout(function() {
-        	console.log(that.getSocket().readyState);
-        }, 5);
-
-		console.log(this.socket);
 	}
 
 	getSocket() {
@@ -49,9 +45,51 @@ export default class ConnectionHandler {
 	}
 
 
-	handleAnswer(message) {
-		console.log("Received message from server: "+message)
+	handleAnswer(answer) {
+
+		//console.log(answer.data);
+
+		answer = JSON.parse(answer.data);
+
+		if(this.lastMsg) {
+			switch(this.lastMsg.cmd) {
+				case "move":
+
+						if(answer.msg == "ok")
+							console.log("SHA moved forward!");
+
+						else if(answer.msg == "failed")
+							console.log("SHA exploded")
+
+					break;
+				
+
+			}
+		}
+		else {
+			console.log("Received an unexpected message:");
+			console.log(answer);
+		}
 	}
+
+	sendMsg(msg) {
+		return this.getSocket().send(JSON.stringify(msg));
+	}
+
+	sendMoveForward() {
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["forward", "right"]
+			}
+		}
+
+		this.lastMsg = msg;
+
+		this.sendMsg(msg);
+	}
+
 
 	sendTestMessage() {
 		var msg = {
@@ -66,6 +104,3 @@ export default class ConnectionHandler {
 		console.log("Test Message sent to server!");
 	}
 }
-
-
-var player = new JSMpeg.Player();

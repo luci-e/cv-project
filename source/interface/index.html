@@ -3,42 +3,44 @@
 <head>
 	<title>ZA WARUDO</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0"/>
+	<script type='text/javascript' charset='utf-8'>
+	    // Hides mobile browser's address bar when page is done loading.
+	      window.addEventListener('load', function(e) {
+	        setTimeout(function() { window.scrollTo(0, 1); }, 1);
+	      }, false);
+	</script>
 </head>
 <body>
 
 
-<div id="wrapper">
-	<div class="rounded" id="main">
+	<div id="wrapper">
 
-		<div id="streamWindow">
-		</div>
-
-		<div id="listWindow">
-		</div>
-
-		<div id="commandWindow">
-
-		<div id="buttonArea">
-
-			<li>
-				<div id="bUp" class="button"> ^ </div>
-			</li>
-			<li>
-				<div id="bLeft" class="button"> < </div>
-				<div id="bDown" class="button"> v </div>
-				<div id="bRight" class="button"> > </div>
-			</li>
-
-		</div>
-
+		<div id="box" class="flex-column">
+			<div id="tabs" class="flex-row"></div>
+			<div id="top-row" class="flex-row">
+				<div id="video-container" class="flex-element">Video Here</div>
+				<div id="list-container" class="flex-element">Commands here</div>
+			</div>
+			<div id="bottom-row" class="flex-row">
+				<div id="commands-container" class="flex-column">
+					<div class="flex-row">
+						<div class="button">B1</div>
+					</div>
+					<div class="flex-row">
+						<div class="button">B2</div>
+						<div class="button">B3</div>
+						<div class="button">B4</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 	</div>
 
 
-<script src="jsmpeg.min.js"></script>
-<script src="websocket-relay.js"></script>
-<script type="module" src="main.js"></script>
+	<script type="module" src="main.js"></script>
 
 </body>
 </html>
