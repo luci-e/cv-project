@@ -94,7 +94,7 @@ export default class ConnectionHandler {
 	sendTestMessage() {
 		var msg = {
 			text: "KOCCHI WO MIRO!",
-			cmd: "attack"
+			cmd: "ciccia"
 		};
 
 

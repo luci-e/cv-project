@@ -66,6 +66,7 @@ class rover_request_handler():
 
     async def serve(self):
         try:
+            print('Client connected')
             while(True):
                 async for message in self.socket:
                     print(f'{message}')
@@ -100,6 +101,7 @@ class rover_request_handler():
                 await self.cmd_list_faces(msg)
             else:
                 await self.error_response("unknown_cmd")
+                
         except Exception as e:
             print(type(e))    # the exception instance
             print(e.args)     # arguments stored in .args
@@ -221,7 +223,7 @@ class rover_request_handler():
        pass
 
     async def cmd_attack_person(self, message):
-        pass
+        await self.success_response()
 
     async def cmd_stop_attack_person(self, message):
         pass
@@ -276,7 +278,7 @@ class rover_server_thread(Thread):
         # new request handler for each new connection
         asyncio.set_event_loop( asyncio.new_event_loop())
 
-        conn = websockets.serve( self.greet, 'localhost', PORT )
+        conn = websockets.serve( self.greet, '0.0.0.0', PORT )
 
         asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().run_forever()
