@@ -15,9 +15,6 @@ export default class ConnectionHandler {
 		else
 			this.socket = new WebSocket(this.serverAddress);
 
-
-
-
 		var that = this;
 		this.socket.onmessage = this.handleAnswer;
 
@@ -88,10 +85,11 @@ export default class ConnectionHandler {
 		this.lastMsg = msg;
 
 		this.sendMsg(msg);
-=======
+
+	}
+	
 	handleAnswer(message) {
-		console.log("Received message from server: "+message.data)
->>>>>>> Stashed changes
+		console.log("Received message from server: "+message.data);
 	}
 
 
