@@ -5,12 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0"/>
-	<script type='text/javascript' charset='utf-8'>
-	    // Hides mobile browser's address bar when page is done loading.
-	      window.addEventListener('load', function(e) {
-	        setTimeout(function() { window.scrollTo(0, 1); }, 1);
-	      }, false);
-	</script>
 </head>
 <body>
 
@@ -21,17 +15,17 @@
 			<div id="tabs" class="flex-row"></div>
 			<div id="top-row" class="flex-row">
 				<div id="video-container" class="flex-element">Video Here</div>
-				<div id="list-container" class="flex-element">Commands here</div>
+				<div id="list-container" class="flex-element">List here</div>
 			</div>
 			<div id="bottom-row" class="flex-row">
 				<div id="commands-container" class="flex-column">
-					<div class="flex-row">
-						<div class="button">B1</div>
+					<div id="r1" class="flex-row">
+						<div id="up" class="button">^</div>
 					</div>
-					<div class="flex-row">
-						<div class="button">B2</div>
-						<div class="button">B3</div>
-						<div class="button">B4</div>
+					<div id="r2" class="flex-row">
+						<div id="left" class="button"><</div>
+						<div id="down" class="button">v</div>
+						<div id="right" class="button">></div>
 					</div>
 				</div>
 			</div>

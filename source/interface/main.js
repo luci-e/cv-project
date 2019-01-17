@@ -7,9 +7,11 @@ var PORT = 8888;
 var SOCKET_ADDR = 'ws://192.168.0.25:'+PORT;
 var CONNECTION_METHOD = '';
 
-document.body.requestFullscreen();
 
-var connection = new RL.ConnectionHandler(SOCKET_ADDR);
 
-connection.connectToServer();
+var keys = new RL.CommandHandler("commands-container");
+var rover = new RL.RoverHandler("SHA", keys, SOCKET_ADDR);
+var rover = new RL.RoverHandler("SHA2", keys, SOCKET_ADDR);
+
+rover.connectToServer();
 //connection.sendTestMessage();

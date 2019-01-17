@@ -1,15 +1,62 @@
 'use strict';
 
-export default class ConnectionHandler {
-	constructor(serverAddress, connectionMethod) {
+export default class RoverHandler {
+	constructor(id, bindings, serverAddress, connectionMethod, createTab) {
 		this.serverAddress = serverAddress;
 		this.connectionMethod = connectionMethod;
 		this.rovers = [];
 		this.socket;
 		this.lastMsg;
+		this.id= id;
+		this.commandHandler = bindings;
+
+		this.getCommandHandler().bind(this);
+
+		if(createTab != false)
+				this.addToWindow();
 	}
 
+	addToWindow() {
+
+		var that = this;
+
+		var tab = document.createElement("div");
+		tab.className="tab-element";
+
+		tab.onclick=function() {
+			that.foreground();
+		}
+
+		tab.appendChild(document.createTextNode(this.getId()));
+
+
+		document.getElementById("tabs").appendChild(tab);
+
+	}
+
+	foreground() {
+
+		console.log("Switching to rover: "+this.getId());
+
+		var videoWindow = document.getElementById("video-container");
+		var listWindow  = document.getElementById("list-container");
+
+		//DO STUFF with the windows
+
+		this.getCommandHandler().bind(this);
+	}
+
+	getCommandHandler() {
+		return this.commandHandler;
+	}
+
+	getId() {
+		return this.id;
+	}
+
+
 	connectToServer() {
+		
 		if(this.connectionMethod)
 			this.socket = new WebSocket(this.serverAddress, [this.connectionMethod]);
 		else
@@ -70,15 +117,23 @@ export default class ConnectionHandler {
 	}
 
 	sendMsg(msg) {
-		return this.getSocket().send(JSON.stringify(msg));
+
+		try {
+				this.getSocket().send(JSON.stringify(msg));
+		}
+		catch(e) {
+			console.log("\t-> Could not send message, still not connected!");
+		}
 	}
 
-	sendMoveForward() {
+	up() {
+
+		console.log(this.getId()+": Sending move forward message");
 
 		var msg = {
 			cmd: "move",
 			params: {
-				direction: ["forward", "right"]
+				direction: ["forward"]
 			}
 		}
 
@@ -87,7 +142,43 @@ export default class ConnectionHandler {
 		this.sendMsg(msg);
 
 	}
+
+	right() {
+
+		console.log(this.getId()+": Sending move right message");
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["right"]
+			}
+		}
+
+		this.lastMsg = msg;
+
+		this.sendMsg(msg);
+	}
+
+	left() {
+
+		console.log(this.getId()+": Sending move left message");
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["left"]
+			}
+		}
+
+		this.lastMsg = msg;
+
+		this.sendMsg(msg);
+	}
 	
+	down() {
+
+	}
+
 	handleAnswer(message) {
 		console.log("Received message from server: "+message.data);
 	}
