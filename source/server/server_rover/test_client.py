@@ -11,7 +11,7 @@ async def send_and_recv( socket, message_dict ):
 
 async def hello():
     async with websockets.connect(
-            'ws://localhost:8888') as websocket:
+            'ws://192.168.1.65:8888') as websocket:
         
         requests = [ { 'cmd' : 'move', 'params' : { 'direction' : ['left', 'right'] } },
                      { 'cmd' : 'move', 'params' : { 'direction' : ['forward', 'right'] } },

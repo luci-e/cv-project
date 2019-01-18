@@ -50,15 +50,17 @@ class rover_HAL():
                                 OutputDevice(pins[3])
                             ]
 
+            self.delay = 0.01
+
             # Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
             self.motor_steps = [
-                1,
-                3,
-                2,
-                6,
-                4,
-                12,
                 8,
+                12,
+                4,
+                6,
+                2,
+                3,
+                1,
                 9
             ]
 
@@ -78,6 +80,8 @@ class rover_HAL():
                 else:
                     self.motor_pin[pin].off()
 
+            time.sleep(self.delay)
+
 
     def __init__(self):
 
@@ -88,15 +92,15 @@ class rover_HAL():
         # the LASER
         # the ultrasonic sensor
 
-        self.left_motor_pins = [31,33,35,37]
-        self.right_motor_pins = [32,36,38,40]
-        self.camera_motor_pins = [0,0,0,0]
+        self.left_motor_pins = [6,13,19,26]
+        self.right_motor_pins = [12,16,20,21]
+        #self.camera_motor_pins = [0,0,0,0]
         self.top_limiting_switch_pin = 0
         self.bottom_limiting_switch_pin = 0
 
-        self.left_motor = motor_controller()
-        self.right_motor = motor_controller()
-        self.camera_motor = motor_controller()
+        self.left_motor = self.motor_controller()
+        self.right_motor = self.motor_controller()
+        #self.camera_motor = self.motor_controller()
 
         
 
@@ -136,9 +140,7 @@ class rover_HAL():
 # class. Although not enforced, this is a singleton.
 class rover_data():
     def __init__(self):
-        self.PORT = 80
-
-
+        self.PORT = 8888
 
 class rover_request_handler():
     def __init__(self, websocket, path):
@@ -375,7 +377,7 @@ def main():
 
     # Standard argument parsing
     parser = argparse.ArgumentParser( description = 'Start the dispatcher')
-    parser.add_argument('-p', '--port' , default = 80, type = int , help = 'The port on which to open the server')
+    parser.add_argument('-p', '--port' , default = 8888, type = int , help = 'The port on which to open the server')
     args = parser.parse_args()
 
     rover_shared_data.PORT = args.port
