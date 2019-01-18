@@ -7,6 +7,8 @@ import argparse
 import asyncio
 import websockets
 
+from gpiozero import OutputDevice
+
 from enum import Flag
 from threading import Thread
 
@@ -37,13 +39,91 @@ class ROVER_STATUS( Flag ):
 # The rover Hardware Abastraction Layer handles all requests that must be handled 
 # by the hardware. Although not enforced, this is a singleton.
 class rover_HAL():
+
+    class motor_controller():
+        def __init__(self, pins):
+            # The number representing the status of the stepper motors in the motor steps list
+            self.motor_status = 0
+            self.motor_pins = [ OutputDevice(pins[0]),
+                                OutputDevice(pins[1]),
+                                OutputDevice(pins[2]),
+                                OutputDevice(pins[3])
+                            ]
+
+            # Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
+            self.motor_steps = [
+                1,
+                3,
+                2,
+                6,
+                4,
+                12,
+                8,
+                9
+            ]
+
+            self.steps_len = len(self.motor_steps)
+
+        def step_motor(self, direction):
+            if(direction):
+                self.motor_status = (self.motor_status  + 1 ) % self.steps_len
+            else:
+                self.motor_status = (self.motor_status  - 1 + self.steps_len ) % self.steps_len
+
+            pin_values = self.motor_steps[self.motor_status]
+            for pin in range(4):
+                v = pin_values >> pin & 1
+                if(v):
+                    self.motor_pins[pin].on()
+                else:
+                    self.motor_pin[pin].off()
+
+
     def __init__(self):
-        pass
+
+
+        # The pins on the raspberry pi that control
+        # the motors
+        # the limiting switches
+        # the LASER
+        # the ultrasonic sensor
+
+        self.left_motor_pins = [31,33,35,37]
+        self.right_motor_pins = [32,36,38,40]
+        self.camera_motor_pins = [0,0,0,0]
+        self.top_limiting_switch_pin = 0
+        self.bottom_limiting_switch_pin = 0
+
+        self.left_motor = motor_controller()
+        self.right_motor = motor_controller()
+        self.camera_motor = motor_controller()
+
+        
 
     def is_blocked( self ):
         pass
 
+    def step_wheel_motor(self, motor_no, amount, speed ):
+        pass
+
+    def step_camera_motor(self, amount):
+        pass
+
     def move( self, direction ):
+        for s in range(3):
+            if (direction & ROVER_DIRECTION.FORWARD):
+                self.left_motor.step_motor(True)
+                self.right_motor.step_motor(True)
+            if (direction & ROVER_DIRECTION.BACK):
+                self.left_motor.step_motor(False)
+                self.right_motor.step_motor(False)
+            if (direction & ROVER_DIRECTION.LEFT):
+                self.left_motor.step_motor(False)
+                self.right_motor.step_motor(True)
+            if (direction & ROVER_DIRECTION.RIGHT):
+                self.left_motor.step_motor(True)
+                self.right_motor.step_motor(False)
+
         return ROVER_STATUS.OK
 
     def move_cam( self, direction ):
@@ -56,7 +136,8 @@ class rover_HAL():
 # class. Although not enforced, this is a singleton.
 class rover_data():
     def __init__(self):
-        pass
+        self.PORT = 80
+
 
 
 class rover_request_handler():
@@ -278,7 +359,7 @@ class rover_server_thread(Thread):
         # new request handler for each new connection
         asyncio.set_event_loop( asyncio.new_event_loop())
 
-        conn = websockets.serve( self.greet, '0.0.0.0', PORT )
+        conn = websockets.serve( self.greet, '0.0.0.0', rover_shared_data.PORT )
 
         asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().run_forever()
@@ -286,18 +367,18 @@ class rover_server_thread(Thread):
 
 #>>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
 
-PORT = 80
 rover_hal = rover_HAL()
+rover_shared_data = rover_data()
 
 def main():
-    global PORT
+    global rover_shared_data
 
     # Standard argument parsing
     parser = argparse.ArgumentParser( description = 'Start the dispatcher')
     parser.add_argument('-p', '--port' , default = 80, type = int , help = 'The port on which to open the server')
     args = parser.parse_args()
 
-    PORT = args.port
+    rover_shared_data.PORT = args.port
 
     # Start server
     server_thread = rover_server_thread()
