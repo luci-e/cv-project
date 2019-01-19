@@ -112,7 +112,7 @@ class rover_HAL():
         pass
 
     def move( self, direction ):
-        for s in range(255):
+        for s in range(512):
             if (direction & ROVER_DIRECTION.FORWARD):
                 self.left_motor.step_motor(False)
                 self.right_motor.step_motor(True)
