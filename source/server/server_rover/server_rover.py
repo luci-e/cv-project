@@ -50,7 +50,7 @@ class rover_HAL():
                                 OutputDevice(pins[3])
                             ]
 
-            self.delay = 0.01
+            self.delay = 0.005
 
             # Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
             self.motor_steps = [
@@ -78,9 +78,7 @@ class rover_HAL():
                 if(v):
                     self.motor_pins[pin].on()
                 else:
-                    self.motor_pin[pin].off()
-
-            time.sleep(self.delay)
+                    self.motor_pins[pin].off()
 
 
     def __init__(self):
@@ -98,9 +96,9 @@ class rover_HAL():
         self.top_limiting_switch_pin = 0
         self.bottom_limiting_switch_pin = 0
 
-        self.left_motor = self.motor_controller()
-        self.right_motor = self.motor_controller()
-        #self.camera_motor = self.motor_controller()
+        self.left_motor = self.motor_controller(self.left_motor_pins)
+        self.right_motor = self.motor_controller(self.right_motor_pins)
+        #self.camera_motor = self.motor_controller(self.camera_motor_pins)
 
         
 
@@ -114,19 +112,19 @@ class rover_HAL():
         pass
 
     def move( self, direction ):
-        for s in range(3):
+        for s in range(255):
             if (direction & ROVER_DIRECTION.FORWARD):
-                self.left_motor.step_motor(True)
+                self.left_motor.step_motor(False)
                 self.right_motor.step_motor(True)
             if (direction & ROVER_DIRECTION.BACK):
-                self.left_motor.step_motor(False)
+                self.left_motor.step_motor(True)
                 self.right_motor.step_motor(False)
             if (direction & ROVER_DIRECTION.LEFT):
                 self.left_motor.step_motor(False)
-                self.right_motor.step_motor(True)
+                self.right_motor.step_motor(False)
             if (direction & ROVER_DIRECTION.RIGHT):
                 self.left_motor.step_motor(True)
-                self.right_motor.step_motor(False)
+                self.right_motor.step_motor(True)
 
         return ROVER_STATUS.OK
 
