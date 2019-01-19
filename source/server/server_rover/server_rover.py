@@ -15,7 +15,7 @@ from gpiozero.pins.mock import MockFactory
 from gpiozero import Device, OutputDevice, LED
 
 # Set the default pin factory to a mock factory
-Device.pin_factory = MockFactory()
+#Device.pin_factory = MockFactory()
 
 from enum import Flag
 from threading import Thread
