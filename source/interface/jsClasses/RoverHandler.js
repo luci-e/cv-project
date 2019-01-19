@@ -56,7 +56,7 @@ export default class RoverHandler {
 
 
 	connectToServer() {
-		
+
 		if(this.connectionMethod)
 			this.socket = new WebSocket(this.serverAddress, [this.connectionMethod]);
 		else
@@ -67,7 +67,6 @@ export default class RoverHandler {
 
 		this.socket.onopen = function(event) {
 			console.log("Succesfully connected to remove server!");
-			that.sendMoveForward();
 		}
 
 		this.socket.onmessage = function (answer) {
@@ -126,26 +125,45 @@ export default class RoverHandler {
 		}
 	}
 
-	up() {
 
-		console.log(this.getId()+": Sending move forward message");
+	performAction(action, timeForAction) {
+
+		action(this);
+
+		var that = this;
+		this.movement = setInterval(
+			function() {
+
+				action(that);
+
+			}, timeForAction
+		);
+
+	}
+
+	forward(obj) {
 
 		var msg = {
 			cmd: "move",
 			params: {
 				direction: ["forward"]
 			}
-		}
+		};
+		obj.lastMsg = msg;
+		obj.sendMsg(msg);
 
-		this.lastMsg = msg;
-
-		this.sendMsg(msg);
+		console.log(obj.getId()+": Sending move forward message");
 
 	}
 
-	right() {
 
-		console.log(this.getId()+": Sending move right message");
+	stopAction() {
+		clearInterval(this.movement);
+	}
+
+	right(obj) {
+
+		console.log(obj.getId()+": Sending move right message");
 
 		var msg = {
 			cmd: "move",
@@ -154,14 +172,14 @@ export default class RoverHandler {
 			}
 		}
 
-		this.lastMsg = msg;
+		obj.lastMsg = msg;
 
-		this.sendMsg(msg);
+		obj.sendMsg(msg);
 	}
 
-	left() {
+	left(obj) {
 
-		console.log(this.getId()+": Sending move left message");
+		console.log(obj.getId()+": Sending move left message");
 
 		var msg = {
 			cmd: "move",
@@ -170,13 +188,25 @@ export default class RoverHandler {
 			}
 		}
 
-		this.lastMsg = msg;
+		obj.lastMsg = msg;
 
-		this.sendMsg(msg);
+		obj.sendMsg(msg);
 	}
 	
-	down() {
+	backward(obj) {
 
+		console.log(obj.getId()+": Sending move left message");
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["back"]
+			}
+		}
+
+		obj.lastMsg = msg;
+
+		obj.sendMsg(msg);
 	}
 
 	handleAnswer(message) {
