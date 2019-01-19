@@ -144,7 +144,7 @@ Command laser control request
 	}
 }
 
-"action" is "on" or "off"
+"action" is "on" or "off" or "blink"
 
 Command laser control response
 

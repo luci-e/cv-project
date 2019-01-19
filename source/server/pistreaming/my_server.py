@@ -4,7 +4,8 @@ import sys
 import io
 import os
 import shutil
-import time
+import asyncio
+import websockets
 
 from subprocess import Popen, PIPE
 from string import Template
@@ -145,6 +146,7 @@ class USBCamera(Thread):
     
     def start_recording( self ):
         while True:
+            sleep(1/FRAMERATE)
             # Capture frame-by-frame
             ret, frame = self.cap.read()
             # Our operations on the frame come here
