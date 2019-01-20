@@ -59,7 +59,7 @@ class rover_HAL():
                                 OutputDevice(pins[3])
                             ]
 
-            self.delay = 0.005
+            self.delay = 0.0005
 
             # Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
             self.motor_steps = [
@@ -88,6 +88,8 @@ class rover_HAL():
                     self.motor_pins[pin].on()
                 else:
                     self.motor_pins[pin].off()
+            time.sleep(self.delay)            
+
 
 
     def __init__(self):
@@ -136,10 +138,10 @@ class rover_HAL():
         return ROVER_STATUS.OK
 
     def move_cam( self, direction ):
-        for s in range(1024):
-            if (direction == CAM_DIRECTION.UP):
+        for s in range(128):
+            if (direction & CAM_DIRECTION.UP):
                 self.camera_motor.step_motor(True)
-            if (direction == CAM_DIRECTION.DOWN):
+            if (direction & CAM_DIRECTION.DOWN):
                 self.camera_motor.step_motor(False)
 
         return ROVER_STATUS.OK
