@@ -15,7 +15,7 @@ from gpiozero.pins.mock import MockFactory
 from gpiozero import Device, OutputDevice, LED
 
 # Set the default pin factory to a mock factory
-#Device.pin_factory = MockFactory()
+#cDevice.pin_factory = MockFactory()
 
 from enum import Flag
 from threading import Thread
@@ -112,8 +112,6 @@ class rover_HAL():
         self.right_motor = self.motor_controller(self.right_motor_pins)
         self.camera_motor = self.motor_controller(self.camera_motor_pins)
 
-        
-
     def is_blocked( self ):
         pass
 
@@ -138,7 +136,11 @@ class rover_HAL():
         return ROVER_STATUS.OK
 
     def move_cam( self, direction ):
+<<<<<<< Updated upstream
         for s in range(128):
+=======
+        for s in range(1024):
+>>>>>>> Stashed changes
             if (direction & CAM_DIRECTION.UP):
                 self.camera_motor.step_motor(True)
             if (direction & CAM_DIRECTION.DOWN):

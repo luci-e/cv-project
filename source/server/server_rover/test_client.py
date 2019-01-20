@@ -13,15 +13,12 @@ async def hello():
     async with websockets.connect(
             'ws://192.168.1.65:8888') as websocket:
         
-        requests = [ { 'cmd' : 'move', 'params' : { 'direction' : ['left', 'right'] } },
-                     { 'cmd' : 'move', 'params' : { 'direction' : ['forward', 'right'] } },
-                     { 'cmd' : 'move', 'params' : { 'direction' : ['back', 'right'] } },
-                     { 'cmd' : 'move', 'params' : { 'direction' : ['back', 'left'] } },
-                     { 'cmd' : 'move', 'params' : { 'direction' : ['left', 'back'] } },
-                     { 'cmd' : 'move', 'params' : { 'direction' : ['forward', 'left'] } },
-                     { 'cmd' : 'move_cam', 'params' : { 'direction' : 'up' } },
-                     { 'cmd' : 'move_cam', 'params' : { 'direction' : 'down' } },
-                     { 'cmd' : 'move_cam', 'params' : { 'direction' : 'bo' } }
+        requests = [ { 'cmd' : 'move_cam', 'params' : { 'direction' : 'up' } },
+                    { 'cmd' : 'move_cam', 'params' : { 'direction' : 'down' } },
+                    { 'cmd' : 'move_cam', 'params' : { 'direction' : 'up' } },
+                    { 'cmd' : 'move_cam', 'params' : { 'direction' : 'down' } },
+                    { 'cmd' : 'move_cam', 'params' : { 'direction' : 'up' } },
+                    { 'cmd' : 'move_cam', 'params' : { 'direction' : 'down' } }
         ]
 
         for r in requests:
