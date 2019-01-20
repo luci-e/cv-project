@@ -136,11 +136,7 @@ class rover_HAL():
         return ROVER_STATUS.OK
 
     def move_cam( self, direction ):
-<<<<<<< Updated upstream
         for s in range(128):
-=======
-        for s in range(1024):
->>>>>>> Stashed changes
             if (direction & CAM_DIRECTION.UP):
                 self.camera_motor.step_motor(True)
             if (direction & CAM_DIRECTION.DOWN):
