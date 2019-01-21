@@ -6,6 +6,7 @@ import sys
 import argparse
 import asyncio
 import websockets
+import logging
 
 
 #os.environ['GPIOZERO_PIN_FACTORY'] = os.environ.get('GPIOZERO_PIN_FACTORY', 'mock')
@@ -15,7 +16,7 @@ from gpiozero.pins.mock import MockFactory
 from gpiozero import Device, OutputDevice, LED
 
 # Set the default pin factory to a mock factory
-#cDevice.pin_factory = MockFactory()
+#Device.pin_factory = MockFactory()
 
 from enum import Flag
 from threading import Thread
@@ -161,23 +162,28 @@ class rover_data():
         self.PORT = 8888
 
 class rover_request_handler():
-    def __init__(self, websocket, path):
+    def __init__(self, websocket, path, cleanup_fun = None):
         self.socket = websocket
         self.path = path
+        self.cleanup_fun = cleanup_fun
 
     async def serve(self):
+        print(self.socket)
         try:
-            print('Client connected')
-            while(True):
-                async for message in self.socket:
-                    print(f'{message}')
-                    await self.process(message)
+            async for message in self.socket:
+                print(f'{message}')
+                await self.process(message)
+
+            print('Bye Bye JoJo')
+            self.cleanup_fun(self)
+
         except Exception as e:
             print(type(e))    # the exception instance
             print(e.args)     # arguments stored in .args
             print(e)
 
             print('Connection lost')
+
 
     async def process(self, message):
         try:
@@ -201,8 +207,7 @@ class rover_request_handler():
             elif( cmd == 'list_faces' ):
                 await self.cmd_list_faces(msg)
             else:
-                await self.error_response("unknown_cmd")
-                
+                await self.error_response("unknown_cmd")    
         except Exception as e:
             print(type(e))    # the exception instance
             print(e.args)     # arguments stored in .args
@@ -370,9 +375,13 @@ class rover_server_thread(Thread):
         self.done = True
 
     async def greet( self, websocket, path):
-        request_handler = rover_request_handler( websocket, path )
+        print('Client connected')
+        request_handler = rover_request_handler( websocket, path, cleanup_fun = self.cleanup )
         self.active_connections.add(request_handler)
         await request_handler.serve()
+
+    def cleanup( self, request_handler):
+        self.active_connections.remove(request_handler)
 
     def run(self):
         print('Rover Server started')
@@ -383,7 +392,7 @@ class rover_server_thread(Thread):
 
         conn = websockets.serve( self.greet, '0.0.0.0', rover_shared_data.PORT )
 
-        asyncio.get_event_loop().run_until_complete(conn)
+        awaitable = asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().run_forever()
 
 
@@ -401,6 +410,10 @@ def main():
     args = parser.parse_args()
 
     rover_shared_data.PORT = args.port
+
+    logger = logging.getLogger('websockets')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
 
     # Start server
     server_thread = rover_server_thread()
