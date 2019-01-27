@@ -37,7 +37,7 @@ class CAM_DIRECTION( Flag ):
 class LASER_ACTION( Flag ):
     ON = 1
     OFF = 2
-    BLINK = 3
+    BLINK = 4
 
 # The enum of the possible status of the camera after a move command
 class ROVER_STATUS( Flag ):
@@ -60,7 +60,7 @@ class rover_HAL():
                                 OutputDevice(pins[3])
                             ]
 
-            self.delay = 0.0005
+            self.delay = 0.00
 
             # Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
             self.motor_steps = [
@@ -105,9 +105,8 @@ class rover_HAL():
         self.left_motor_pins = [6,13,19,26]
         self.right_motor_pins = [12,16,20,21]
         self.camera_motor_pins = [4,17,27,22]
-        self.laser = LED(25)
-        self.top_limiting_switch_pin = 0
-        self.bottom_limiting_switch_pin = 0
+        self.laser = LED(24)
+        self.distance_pins = [18, 23]
 
         self.left_motor = self.motor_controller(self.left_motor_pins)
         self.right_motor = self.motor_controller(self.right_motor_pins)
@@ -146,11 +145,11 @@ class rover_HAL():
         return ROVER_STATUS.OK
 
     def laser_ctrl( self, action ):
-        if( action == LASER_ACTION.ON ):
+        if( action & LASER_ACTION.ON ):
             self.laser.on()
-        elif( action == LASER_ACTION.OFF ):
-            self.laser.on()
-        elif( action == LASER_ACTION.BLINK ):
+        elif( action & LASER_ACTION.OFF ):
+            self.laser.off()
+        elif( action & LASER_ACTION.BLINK ):
             self.laser.blink()
 
         return ROVER_STATUS.OK
