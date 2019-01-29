@@ -11,10 +11,9 @@ Command move request
 	}
 }
 
-"direction" is "forward" or "back" or "left" or "right" and the sensible combinations i.e. :
+"direction" is "forward" or "back" or "left" or "right" or "cw" or "ccw" and the sensible combinations i.e. :
 "forward" "right", "forward" "left", "back" "left", "back" "right". 
 If you feed "forward" "back" or "left" "right" or "left" "left" or "right" "right" or "forward" "forward" or "back" "back" to the robot you will be immediately terminated with great pain.
-Note : we can't actually move left or right, we can rotate CCW or CW, however for the sake of keeping the move commnad as a single message I think it's ok to leave this as is.
 
 Command move response
 

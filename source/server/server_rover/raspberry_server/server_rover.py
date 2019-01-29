@@ -27,6 +27,8 @@ class ROVER_DIRECTION( Flag ):
     BACK = 2
     LEFT = 4
     RIGHT = 8
+    CW = 16
+    CCW = 32
 
 # The enum of the possible directions the camera can move
 class CAM_DIRECTION( Flag ):
@@ -163,7 +165,9 @@ class rover_request_handler():
                                     frozenset( ['forward', 'left']),
                                     frozenset( ['forward', 'right']),
                                     frozenset( ['back', 'left']),
-                                    frozenset( ['back', 'right'])
+                                    frozenset( ['back', 'right']),
+                                    frosenzet( ['cw']),
+                                    frosenzet( ['ccw'])
                                  ] )
 
         try:
@@ -183,6 +187,10 @@ class rover_request_handler():
                     rover_dir = ROVER_DIRECTION.LEFT
                 elif( direction == frozenset( ['right']) ):
                     rover_dir = ROVER_DIRECTION.RIGHT
+                elif( direction == frozenset( ['cw']) ):
+                    rover_dir = ROVER_DIRECTION.CW
+                elif( direction == frozenset( ['ccw']) ):
+                    rover_dir = ROVER_DIRECTION.CCW
                 elif( direction == frozenset( ['forward', 'left']) ):
                     rover_dir = ROVER_DIRECTION.FORWARD | ROVER_DIRECTION.LEFT
                 elif( direction == frozenset( ['forward', 'right']) ):
@@ -191,6 +199,7 @@ class rover_request_handler():
                    rover_dir = ROVER_DIRECTION.BACK | ROVER_DIRECTION.LEFT
                 elif( direction == frozenset( ['back', 'right'] ) ):
                    rover_dir = ROVER_DIRECTION.BACK | ROVER_DIRECTION.RIGHT
+
 
                 r = rover_hal.move( rover_dir )
                 if ( r ==  ROVER_STATUS.OK ):
