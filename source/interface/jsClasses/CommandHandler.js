@@ -142,11 +142,11 @@ export default class CommandHandler {
 						break;
 
 					case "s":
-						this.rover.repeatAction(this.rover.right, 750);
+						this.rover.repeatAction(this.rover.backward, 750);
 						break;
 
 					case "d":
-						this.rover.repeatAction(this.rover.backward, 750);
+						this.rover.repeatAction(this.rover.right, 750);
 						break;
 				}
 
