@@ -50,6 +50,29 @@ Command move camera response
 
 ----------------------------------------------------------------------------------------------------
 
+Command stop request
+
+{
+	"cmd" : "move_stop",
+	"params" : {
+		"motors" : [ "motors", "motors" ]
+	}
+}
+
+"motors" is "camera" or "wheels"
+
+Command stop response
+
+{
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "blocked" or "bad_motors" or "youre_a_bad_person"
+
+----------------------------------------------------------------------------------------------------
+
 Command track person request
 
 {

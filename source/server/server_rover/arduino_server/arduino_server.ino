@@ -1,33 +1,46 @@
 // The enum of the possible directions the rover can move
-typedef enum ROVER_DIRECTION {
+enum class ROVER_DIRECTION : int {
+  STOP = 0,
   FORWARD = 1,
   BACK = 2,
   LEFT = 4,
   RIGHT = 8,
   CW = 16,
   CCW = 32
-} ROVER_DIRECTION;
+};
 
 // The enum of the possible directions the camera can move
-typedef enum CAM_DIRECTION {
+enum class CAM_DIRECTION  : int {
+  STOP = 0,
   UP = 1,
   DOWN = 2
-} CAM_DIRECTION;
+};
 
+// The enum of the possible motors on the rover
+enum class ROVER_MOTORS  : int {
+    WHEELS = 1,
+    CAMERA = 2
+};
+
+// The enum of the possible status of the camera after a move command
+enum class MOTOR_STEPS : int  {
+  INFINITE = -1,
+};
+    
 // The enum of the possible statuses for the laser
-typedef enum LASER_ACTION {
+enum class LASER_ACTION : int  {
   ON = 1,
   OFF = 2,
   BLINK = 4
-} LASER_ACTION;
+};
 
 // The enum of the possible status of the camera after a move command
-typedef enum ROVER_STATUS {
+enum class ROVER_STATUS : int  {
   OK = 0,
   BLOCKED = 1,
   CAM_TOP_LIMIT = 2,
   CAM_BOTTOM_LIMIT = 4
-} ROVER_STATUS;
+};
 
 class rover_HAL {
 
@@ -113,7 +126,7 @@ class rover_HAL {
 
         }
 
-        unsigned long read_distance() {
+        unsigned long get_distance() {
           digitalWrite(this->sensor_pins[0], LOW);
           delayMicroseconds(5);
           digitalWrite(this->sensor_pins[0], HIGH);
@@ -122,7 +135,7 @@ class rover_HAL {
 
           unsigned long duration = pulseIn(this->sensor_pins[1], HIGH);
          
-          return (duration/2) / 29.1;
+          return (duration/2.0) / 29.1;
         }
     };
 
@@ -156,8 +169,16 @@ class rover_HAL {
     distance_sensor_controller *distance_sensor;
     laser_controller *laser;
 
-    unsigned long wheel_motor_steps = 512;
-    unsigned long camera_motor_steps = 100;
+    ROVER_DIRECTION current_rover_direction = ROVER_DIRECTION::STOP;
+    CAM_DIRECTION current_camera_direction = CAM_DIRECTION::STOP;
+
+    // The current steps of the motors
+    int wheels_current_steps = 0;
+    int camera_current_steps = 0;
+
+    // How many steps for the desired movement
+    int wheels_target_steps = 0;
+    int camera_target_steps = 0;
 
     rover_HAL() {
     }
@@ -176,8 +197,23 @@ class rover_HAL {
       this->laser = new laser_controller( laser_pin );
     }
 
-    ROVER_STATUS move( ROVER_DIRECTION direction ) {
-      for ( int s = 0; s < this->wheel_motor_steps; s++) {
+    ROVER_STATUS prepare_rover_movement( ROVER_DIRECTION direction, int steps){
+      this->current_rover_direction = direction;
+      this->wheels_target_steps = steps;
+      this->wheels_current_steps = 0;
+    }
+
+    
+    ROVER_STATUS prepare_camera_movement( CAM_DIRECTION direction, int steps){
+      this->current_camera_direction = direction;
+      this->camera_target_steps = steps;
+      this->camera_current_steps = 0;
+    }
+
+    ROVER_STATUS move () {
+      if( (this->wheels_current_steps < this->wheels_target_steps) || (this->wheels_target_steps == static_cast<int>(MOTOR_STEPS::INFINITE) ) ){
+        ROVER_DIRECTION direction = this->current_rover_direction;
+        
         if (direction == ROVER_DIRECTION::FORWARD) {
           //Serial.println("moving forward");
           this->left_motor->step_motor(true);
@@ -202,59 +238,84 @@ class rover_HAL {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(false);
 
-        }else if (direction & ROVER_DIRECTION::FORWARD & ROVER_DIRECTION::LEFT) {
+        }else if ( static_cast<int>(direction)  & static_cast<int>(ROVER_DIRECTION::FORWARD) & static_cast<int>(ROVER_DIRECTION::LEFT) ) {
           this->left_motor->step_motor(true);
           this->right_motor->step_motor(false);
           this->right_motor->step_motor(false);
           
-        }else if (direction & ROVER_DIRECTION::FORWARD & ROVER_DIRECTION::RIGHT) {
+        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::FORWARD) & static_cast<int>(ROVER_DIRECTION::RIGHT) ) {
           this->left_motor->step_motor(true);
           this->right_motor->step_motor(false);
           this->left_motor->step_motor(true);
           
-        }else if (direction & ROVER_DIRECTION::BACK & ROVER_DIRECTION::LEFT) {
+        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::BACK) & static_cast<int>(ROVER_DIRECTION::LEFT) ) {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(true);  
           this->right_motor->step_motor(true);
           
-        }else if (direction & ROVER_DIRECTION::BACK & ROVER_DIRECTION::RIGHT) {
+        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::BACK) & static_cast<int>(ROVER_DIRECTION::RIGHT) ) {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(true);
           this->left_motor->step_motor(false);
           
         }
+
+        this->wheels_current_steps++;
+      }else{
+        this->move_stop( ROVER_MOTORS::WHEELS );
       }
 
       return ROVER_STATUS::OK;
     }
 
-    ROVER_STATUS move_cam( CAM_DIRECTION direction ) {
-      for ( int s = 0; s < this->camera_motor_steps; s++) {
-        if (direction & CAM_DIRECTION::UP ) {
+    ROVER_STATUS move_cam() {
+      if( (this->camera_current_steps < this->camera_target_steps) || (this->camera_current_steps == static_cast<int>(MOTOR_STEPS::INFINITE) ) ){
+        CAM_DIRECTION direction = this->current_camera_direction;
+        
+        if ( static_cast<int>(direction) & static_cast<int>(CAM_DIRECTION::UP) ) {
           //Serial.println("moving up");
           this->camera_motor->step_motor(true);
-        } if (direction & CAM_DIRECTION::DOWN) {
+        } if ( static_cast<int>(direction) & static_cast<int>(CAM_DIRECTION::DOWN) ) {
           //Serial.println("moving down");
           this->camera_motor->step_motor(false);
         }
+
+        this->camera_current_steps++;
+      }else{
+        this->move_stop( ROVER_MOTORS::CAMERA );
       }
 
       return ROVER_STATUS::OK;
     }
 
     ROVER_STATUS laser_control( LASER_ACTION action ) {
-      if ( action & LASER_ACTION::ON ) {
+      if ( static_cast<int>(action) & static_cast<int>(LASER_ACTION::ON) ) {
         this->laser->on();
-      } if ( action & LASER_ACTION::OFF ) {
+      } if ( static_cast<int>(action) & static_cast<int>(LASER_ACTION::OFF) ) {
         this->laser->off();
-      } if ( action & LASER_ACTION::BLINK ) {
+      } if ( static_cast<int>(action) & static_cast<int>(LASER_ACTION::BLINK) ) {
 
       }
 
       return ROVER_STATUS::OK;
     }
 
-    ROVER_STATUS execute_command( String *command) {
+    ROVER_STATUS move_stop( ROVER_MOTORS motors ) {
+      if ( static_cast<int>(motors) & static_cast<int>(ROVER_MOTORS::WHEELS) ) {
+        this->current_rover_direction = ROVER_DIRECTION::STOP;
+        this->wheels_current_steps = 0;
+        this->wheels_target_steps = 0;
+      } if ( static_cast<int>(motors) & static_cast<int>(ROVER_MOTORS::CAMERA) ) {
+        this->current_camera_direction = CAM_DIRECTION::STOP;
+        this->camera_current_steps = 0;
+        this->camera_target_steps = 0;
+      }
+
+      return ROVER_STATUS::OK;
+    }
+
+
+    ROVER_STATUS execute_command( String *command, unsigned int argcount) {
       String cmd = command[0];
       String param = command[1];
 
@@ -267,61 +328,102 @@ class rover_HAL {
       Serial.println( param );
 
       if ( cmd.equals("move") ) {
-        ROVER_DIRECTION dir = 0;
+        int dir = static_cast<int>(ROVER_DIRECTION::STOP);
+        int steps = static_cast<int>(MOTOR_STEPS::INFINITE);
+
+        unsigned long front_distance = this->distance_sensor->get_distance();
+        Serial.print("Front distance : ");
+        Serial.println( front_distance );
 
         if ( param.equals("w")) {
-          dir |= ROVER_DIRECTION::FORWARD;
+          dir |= static_cast<int>(ROVER_DIRECTION::FORWARD);
         } else if ( param.equals("a")) {
-          dir |= ROVER_DIRECTION::LEFT;
+          dir |= static_cast<int>(ROVER_DIRECTION::LEFT);
         } else if ( param.equals("s")) {
-          dir |= ROVER_DIRECTION::BACK;
+          dir |= static_cast<int>(ROVER_DIRECTION::BACK);
         } else if ( param.equals("d")) {
-          dir |= ROVER_DIRECTION::RIGHT;
+          dir |= static_cast<int>(ROVER_DIRECTION::RIGHT);
         } else if ( param.equals("wa")) {
-          dir |= ( ROVER_DIRECTION::FORWARD | ROVER_DIRECTION::LEFT );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD) | static_cast<int>(ROVER_DIRECTION::LEFT) );
         } else if ( param.equals("wd")) {
-          dir |= ( ROVER_DIRECTION::FORWARD | ROVER_DIRECTION::RIGHT );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD) | static_cast<int>(ROVER_DIRECTION::RIGHT) );
         } else if ( param.equals("sa")) {
-          dir |= ( ROVER_DIRECTION::BACK | ROVER_DIRECTION::RIGHT );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK) | static_cast<int>(ROVER_DIRECTION::RIGHT) );
         } else if ( param.equals("sd")) {
-          dir |= ( ROVER_DIRECTION::BACK | ROVER_DIRECTION::LEFT );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK) | static_cast<int>(ROVER_DIRECTION::LEFT) );
         } else if ( param.equals("e")) {
-          dir |= ( ROVER_DIRECTION::CW );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::CW) );
         } else if ( param.equals("q")) {
-          dir |= ( ROVER_DIRECTION::CCW );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::CCW) );
         }
 
-        this->move( dir );
+        // Check if it's a free movement
+        if( argcount == 3){
+          steps = command[2].toInt();
+        }
+
+        this->prepare_rover_movement( static_cast<ROVER_DIRECTION>(dir), steps);
 
       } else if ( cmd.equals("move_cam") ) {
         String param = command[1];
-        CAM_DIRECTION dir = 0;
+        int dir = static_cast<int>(CAM_DIRECTION::STOP);
+        int steps = static_cast<int>(MOTOR_STEPS::INFINITE);
 
         if ( param.equals("r") ) {
-          dir |= CAM_DIRECTION::UP;
+          dir |= static_cast<int>(CAM_DIRECTION::UP);
         } else if ( param.equals("f") ) {
-          dir |= CAM_DIRECTION::DOWN;
+          dir |= static_cast<int>(CAM_DIRECTION::DOWN);
         }
 
-        this->move_cam( dir );
+        // Check if it's a free movement
+        if( argcount == 3){
+          steps = command[2].toInt();
+        }
+
+        this->prepare_camera_movement( static_cast<CAM_DIRECTION>(dir), steps );
 
       } else if ( cmd.equals("laser_ctrl") ) {
 
-        LASER_ACTION action = 0;
+        int action = 0;
 
         if ( param.equals("o") ) {
-          action |= LASER_ACTION::OFF;
+          action |= static_cast<int>(LASER_ACTION::OFF);
         } else if ( param.equals("i") ) {
-          action |= LASER_ACTION::ON;
+          action |= static_cast<int>(LASER_ACTION::ON);
         } else if ( param.equals("p") ) {
-          action |= LASER_ACTION::BLINK;
+          action |= static_cast<int>(LASER_ACTION::BLINK);
         }
 
-        this->laser_control( action );
+        this->laser_control( static_cast<LASER_ACTION>(action) );
+
+      } else if ( cmd.equals("move_stop") ) {
+
+        int motors = 0;
+        
+        if ( param.equals("w") ) {
+          motors |= static_cast<int>(ROVER_MOTORS::WHEELS);
+        } else if ( param.equals("c") ) {
+          motors |= static_cast<int>(ROVER_MOTORS::CAMERA);
+        } else if ( param.equals("wc") ) {
+          motors |= static_cast<int>(ROVER_MOTORS::WHEELS) | static_cast<int>(ROVER_MOTORS::CAMERA);
+        }
+
+        this->move_stop( static_cast<ROVER_MOTORS>(motors) );
 
       }
 
       return ROVER_STATUS::OK;
+    }
+
+    ROVER_STATUS update(){
+      // Move if needed
+      if( this->current_rover_direction != ROVER_DIRECTION::STOP ){
+        this->move();
+      }
+
+      if( this->current_camera_direction != CAM_DIRECTION::STOP){
+        this->move_cam();
+      }
     }
 
 } g_rover_hal;
@@ -415,11 +517,13 @@ void loop() {
         }
 
       case 2: {
-          g_rover_hal.execute_command( g_command_parser.current_command );
+          g_rover_hal.execute_command( g_command_parser.current_command, g_command_parser.argcount );
           g_command_parser.reset();
           break;
         }
     }
+
+    g_rover_hal.update();
   }
 
 }

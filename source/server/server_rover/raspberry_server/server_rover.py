@@ -7,22 +7,14 @@ import argparse
 import asyncio
 import websockets
 import logging
-
-
-#os.environ['GPIOZERO_PIN_FACTORY'] = os.environ.get('GPIOZERO_PIN_FACTORY', 'mock')
-import gpiozero
-from gpiozero.pins.mock import MockFactory
-
-from gpiozero import Device, OutputDevice, LED
-
-# Set the default pin factory to a mock factory
-#Device.pin_factory = MockFactory()
+import serial
 
 from enum import Flag
 from threading import Thread
 
 # The enum of the possible directions the rover can move
 class ROVER_DIRECTION( Flag ):
+    STOP = 0
     FORWARD = 1
     BACK = 2
     LEFT = 4
@@ -32,8 +24,14 @@ class ROVER_DIRECTION( Flag ):
 
 # The enum of the possible directions the camera can move
 class CAM_DIRECTION( Flag ):
+    STOP = 0
     UP = 1
     DOWN = 2
+
+# The enum of the possible motors on the rover
+class ROVER_MOTORS( Flag ):
+    WHEELS = 1
+    CAMERA = 2
 
 # The enum of the possible statuses for the laser
 class LASER_ACTION( Flag ):
@@ -48,28 +46,87 @@ class ROVER_STATUS( Flag ):
     CAM_TOP_LIMIT = 2
     CAM_BOTTOM_LIMIT = 4
 
+
+
 # The rover Hardware Abastraction Layer handles all requests that must be handled 
 # by the hardware. Although not enforced, this is a singleton.
 class rover_HAL():
 
     def __init__(self):
+        pass
+
+    def open_serial(self):
+        self.ser = serial.Serial( rover_shared_data.serial_port )
+
+    def send_serial_command(self, command):
+        self.ser.write(command)
 
     def is_blocked( self ):
         pass
 
-    def step_camera_motor(self, amount):
-        pass
-
     def move( self, direction ):
+        serial_command = 'move '
 
+        if( direction & ROVER_DIRECTION.FORWARD ):
+            serial_command += 'w'
+        if( direction & ROVER_DIRECTION.BACK ):
+            serial_command += 's'
+        if( direction & ROVER_DIRECTION.LEFT ):
+            serial_command += 'a'
+        if( direction & ROVER_DIRECTION.RIGHT ):
+            serial_command += 'd'
+        if( direction & ROVER_DIRECTION.CW ):
+            serial_command += 'cw'
+        if( direction & ROVER_DIRECTION.CCW ):
+            serial_command += 'ccw'
+
+        serial_command += '\n'
+
+        self.send_serial_command( bytes(serial_command, 'ascii') )
+       
         return ROVER_STATUS.OK
 
     def move_cam( self, direction ):
+        serial_command = 'move_cam '
 
+        if( direction & CAM_DIRECTION.UP ):
+            serial_command += 'r'
+        if( direction & CAM_DIRECTION.DOWN ):
+            serial_command += 'f'
+
+        serial_command += '\n'
+
+        self.send_serial_command( bytes(serial_command, 'ascii') )
         return ROVER_STATUS.OK
+
+
+    def stop_motors( self, motors ):
+
+        serial_command = 'move_stop '
+
+        if( motors & ROVER_MOTORS.WHEELS ):
+            serial_command += 'w'
+        if( motors & ROVER_MOTORS.CAMERA ):
+            serial_command += 'c'
+
+        serial_command += '\n'
+
+        self.send_serial_command( bytes(serial_command, 'ascii') )
+        return ROVER_STATUS.OK
+
 
     def laser_ctrl( self, action ):
 
+        serial_command = 'laser_ctrl '
+
+        if( direction & LASER_ACTION.ON ):
+            serial_command += 'i'
+        if( direction & LASER_ACTION.OFF ):
+            serial_command += 'o'
+
+        serial_command += '\n'
+
+        self.send_serial_command( bytes(serial_command, 'ascii') )
         return ROVER_STATUS.OK
 
 # A class holding all data that is common to the rover and can be accessed by any other
@@ -77,6 +134,7 @@ class rover_HAL():
 class rover_data():
     def __init__(self):
         self.PORT = 8888
+        self.serial_port = ''
 
 class rover_request_handler():
     def __init__(self, websocket, path, cleanup_fun = None):
@@ -111,6 +169,8 @@ class rover_request_handler():
                 await self.cmd_move(msg)
             elif( cmd == 'move_cam' ):
                 await self.cmd_move_camera(msg)
+            elif( cmd == 'move_stop' ):
+                await self.cmd_move_stop(msg)
             elif( cmd == 'track' ):
                 await self.cmd_track_person(msg)
             elif( cmd == 'untrack' ):
@@ -166,8 +226,8 @@ class rover_request_handler():
                                     frozenset( ['forward', 'right']),
                                     frozenset( ['back', 'left']),
                                     frozenset( ['back', 'right']),
-                                    frosenzet( ['cw']),
-                                    frosenzet( ['ccw'])
+                                    frozenset( ['cw']),
+                                    frozenset( ['ccw'])
                                  ] )
 
         try:
@@ -223,6 +283,7 @@ class rover_request_handler():
 
         print(f'Processing move camera command')
 
+
         try:
             params = message['params']
 
@@ -245,6 +306,44 @@ class rover_request_handler():
                 await self.error_response("bottom_limit")
         except:
             await self.error_response("bad_params")
+
+    # Stops the desired movements
+    async def cmd_move_stop(self, message):
+
+        print(f'Processing move stop command')
+
+        # Define the set of sets of allowed motors and combinations
+        allowed_motors  = set( [ frozenset( ['wheels'] ),
+                                    frozenset( ['camera']),
+                                    frozenset( ['camera', 'wheels'])
+                                 ] )
+
+        try:
+            params = message['params']
+
+            motors = frozenset(params['motors'])
+
+            if( motors in allowed_motors ):
+
+                stopped_motors = None
+
+                if( motors == frozenset( ['wheels'] ) ):
+                    stopped_motors = ROVER_MOTORS.WHEELS 
+                elif( motors == frozenset( ['camera'] ) ):
+                    stopped_motors = ROVER_MOTORS.CAMERA 
+                elif( motors == frozenset( ['wheels', 'camera'] ) ):
+                    stopped_motors = ROVER_MOTORS.WHEELS | ROVER_MOTORS.CAMERA
+
+                r = rover_hal.stop_motors( stopped_motors )
+
+                if ( r == ROVER_STATUS.OK ):
+                    await self.success_response()
+            else:
+                await self.error_response("bad_motors")
+        except:
+            await self.error_response("bad_params")
+
+
 
     async def cmd_track_person(self, message):
         pass
@@ -331,9 +430,13 @@ def main():
     # Standard argument parsing
     parser = argparse.ArgumentParser( description = 'Start the dispatcher')
     parser.add_argument('-p', '--port' , default = 8888, type = int , help = 'The port on which to open the server')
+    parser.add_argument('-s', '--serial' , default = '/dev/ttyUSB0', help = 'The serial port to communicate with the arduino')
     args = parser.parse_args()
 
     rover_shared_data.PORT = args.port
+    rover_shared_data.serial_port = args.serial
+
+    rover_hal.open_serial()
 
     logger = logging.getLogger('websockets')
     logger.setLevel(logging.DEBUG)
