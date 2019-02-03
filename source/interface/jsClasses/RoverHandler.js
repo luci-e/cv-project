@@ -126,7 +126,7 @@ export default class RoverHandler {
 	}
 
 
-	performAction(action, timeForAction) {
+	repeatAction(action, timeForAction) {
 
 		action(this);
 
@@ -138,6 +138,9 @@ export default class RoverHandler {
 
 			}, timeForAction
 		);
+
+
+
 
 	}
 
@@ -189,7 +192,6 @@ export default class RoverHandler {
 		}
 
 		obj.lastMsg = msg;
-
 		obj.sendMsg(msg);
 	}
 	
@@ -211,6 +213,21 @@ export default class RoverHandler {
 
 	handleAnswer(message) {
 		console.log("Received message from server: "+message.data);
+	}
+
+	cameraUp() {
+
+		console.log("HELLO THERE");
+
+		var msg = {
+			cmd: "move_cam",
+			params: {
+				direction: "up"
+			}
+		};
+
+		this.lastMsg = msg;
+		this.sendMsg(msg);
 	}
 
 
