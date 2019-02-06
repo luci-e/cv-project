@@ -4,6 +4,10 @@ enum class ROVER_DIRECTION : int {
   FORWARD = 1,
   BACK = 2,
   LEFT = 4,
+  FORWARD_LEFT = 5,
+  BACK_LEFT = 6,
+  FORWARD_RIGHT = 9,
+  BACK_RIGHT = 10,
   RIGHT = 8,
   CW = 16,
   CCW = 32
@@ -232,34 +236,34 @@ class rover_HAL {
           
         }else if (direction == ROVER_DIRECTION::CW) {
           this->left_motor->step_motor(true);
-          this->left_motor->step_motor(true);
+          this->right_motor->step_motor(true);
 
         }else if (direction == ROVER_DIRECTION::CCW) {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(false);
 
-        }else if ( static_cast<int>(direction)  & static_cast<int>(ROVER_DIRECTION::FORWARD) & static_cast<int>(ROVER_DIRECTION::LEFT) ) {
+        }else if ( direction == ROVER_DIRECTION::FORWARD_LEFT ) {
           this->left_motor->step_motor(true);
           this->right_motor->step_motor(false);
           this->right_motor->step_motor(false);
           
-        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::FORWARD) & static_cast<int>(ROVER_DIRECTION::RIGHT) ) {
+        }else if ( direction == ROVER_DIRECTION::FORWARD_RIGHT ) {
           this->left_motor->step_motor(true);
           this->right_motor->step_motor(false);
           this->left_motor->step_motor(true);
           
-        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::BACK) & static_cast<int>(ROVER_DIRECTION::LEFT) ) {
+        }else if ( direction == ROVER_DIRECTION::BACK_LEFT ) {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(true);  
           this->right_motor->step_motor(true);
           
-        }else if ( static_cast<int>(direction) & static_cast<int>(ROVER_DIRECTION::BACK) & static_cast<int>(ROVER_DIRECTION::RIGHT) ) {
+        }else if ( direction == ROVER_DIRECTION::BACK_RIGHT ) {
           this->left_motor->step_motor(false);
           this->right_motor->step_motor(true);
           this->left_motor->step_motor(false);
           
         }
-
+        
         this->wheels_current_steps++;
       }else{
         this->move_stop( ROVER_MOTORS::WHEELS );
@@ -269,7 +273,7 @@ class rover_HAL {
     }
 
     ROVER_STATUS move_cam() {
-      if( (this->camera_current_steps < this->camera_target_steps) || (this->camera_current_steps == static_cast<int>(MOTOR_STEPS::INFINITE) ) ){
+      if( (this->camera_current_steps < this->camera_target_steps) || (this->camera_target_steps == static_cast<int>(MOTOR_STEPS::INFINITE) ) ){
         CAM_DIRECTION direction = this->current_camera_direction;
         
         if ( static_cast<int>(direction) & static_cast<int>(CAM_DIRECTION::UP) ) {
@@ -344,13 +348,13 @@ class rover_HAL {
         } else if ( param.equals("d")) {
           dir |= static_cast<int>(ROVER_DIRECTION::RIGHT);
         } else if ( param.equals("wa")) {
-          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD) | static_cast<int>(ROVER_DIRECTION::LEFT) );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD_LEFT) );
         } else if ( param.equals("wd")) {
-          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD) | static_cast<int>(ROVER_DIRECTION::RIGHT) );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::FORWARD_RIGHT) );
         } else if ( param.equals("sa")) {
-          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK) | static_cast<int>(ROVER_DIRECTION::RIGHT) );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK_RIGHT) );
         } else if ( param.equals("sd")) {
-          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK) | static_cast<int>(ROVER_DIRECTION::LEFT) );
+          dir |= ( static_cast<int>(ROVER_DIRECTION::BACK_LEFT) );
         } else if ( param.equals("e")) {
           dir |= ( static_cast<int>(ROVER_DIRECTION::CW) );
         } else if ( param.equals("q")) {
@@ -523,7 +527,9 @@ void loop() {
         }
     }
 
-    g_rover_hal.update();
   }
+
+  g_rover_hal.update();
+
 
 }
