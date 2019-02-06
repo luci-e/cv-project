@@ -59,6 +59,7 @@ class rover_HAL():
         self.ser = serial.Serial( rover_shared_data.serial_port )
 
     def send_serial_command(self, command):
+        print(f'sending {command}')
         self.ser.write(command)
 
     def is_blocked( self ):
@@ -76,9 +77,9 @@ class rover_HAL():
         if( direction & ROVER_DIRECTION.RIGHT ):
             serial_command += 'd'
         if( direction & ROVER_DIRECTION.CW ):
-            serial_command += 'cw'
+            serial_command += 'e'
         if( direction & ROVER_DIRECTION.CCW ):
-            serial_command += 'ccw'
+            serial_command += 'q'
 
         serial_command += '\n'
 
@@ -119,9 +120,9 @@ class rover_HAL():
 
         serial_command = 'laser_ctrl '
 
-        if( direction & LASER_ACTION.ON ):
+        if( action & LASER_ACTION.ON ):
             serial_command += 'i'
-        if( direction & LASER_ACTION.OFF ):
+        if( action & LASER_ACTION.OFF ):
             serial_command += 'o'
 
         serial_command += '\n'
@@ -367,7 +368,7 @@ class rover_request_handler():
 
             action = params['action']
             laser_action = None
-
+            
             if( action == 'on' ):
                 laser_action = LASER_ACTION.ON
             elif( action == 'off' ):
@@ -381,7 +382,10 @@ class rover_request_handler():
             if ( r == ROVER_STATUS.OK ):
                 await self.success_response()
 
-        except:
+        except Exception as e:
+            print(type(e))    # the exception instance
+            print(e.args)     # arguments stored in .args
+            print(e) 
             await self.error_response("bad_params")
 
     async def cmd_list_faces(self, message):
@@ -438,9 +442,9 @@ def main():
 
     rover_hal.open_serial()
 
-    logger = logging.getLogger('websockets')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
+    #logger = logging.getLogger('websockets')
+    #logger.setLevel(logging.DEBUG)
+    #logger.addHandler(logging.StreamHandler())
 
     # Start server
     server_thread = rover_server_thread()
