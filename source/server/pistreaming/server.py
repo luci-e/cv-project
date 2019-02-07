@@ -6,7 +6,7 @@ import os
 import shutil
 import time
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, DEVNULL
 from string import Template
 from struct import Struct
 from threading import Thread
@@ -25,9 +25,9 @@ from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
 ###########################################
 # CONFIGURATION
-WIDTH = 640
-HEIGHT = 480
-FRAMERATE = 24
+WIDTH = 320
+HEIGHT = 240
+FRAMERATE = 30
 HTTP_PORT = 8082
 WS_PORT = 8084
 COLOR = u'#444'
@@ -90,19 +90,27 @@ class StreamingWebSocket(WebSocket):
 class BroadcastOutput(object):
     def __init__(self, camera):
         print('Spawning background conversion process')
-        self.converter = Popen([
-            'ffmpeg',
-            '-f', 'rawvideo',
-            '-pix_fmt', 'bgr24',
-            '-s', '%dx%d' % camera.resolution,
-            '-r', str(float(camera.framerate)),
-            '-i', '-',
-            '-f', 'mpeg1video',
-            '-b', '64k',
-            '-r', str(float(camera.framerate)),
-            '-'],
-            stdin=PIPE, stdout=PIPE, stderr=io.open(os.devnull, 'wb'),
-            shell=False, close_fds=True)
+        try:
+            self.converter = Popen([
+                'ffmpeg',
+                '-f', 'rawvideo',
+                '-pix_fmt', 'rgb24',
+                '-r', f'{camera.framerate}',
+                '-s', f' {int(camera.resolution[0])}x{int(camera.resolution[1])}',
+                '-i', '-',
+                '-maxrate', '1024k',
+                '-bufsize', '2048k',
+                '-r', '30',
+                '-f', 'mpeg1video',
+                '-s', '320x240',
+                '-'],
+                stdin=PIPE, stdout=PIPE, close_fds=False,
+                shell=False)
+
+        except Exception as inst:
+            print(type(inst))    # the exception instance
+            print(inst.args)     # arguments stored in .args
+            print(inst)              
 
     def write(self, b):
         self.converter.stdin.write(b)
@@ -122,7 +130,7 @@ class BroadcastThread(Thread):
     def run(self):
         try:
             while True:
-                buf = self.converter.stdout.read1(32768)
+                buf = self.converter.stdout.read1(2048)
                 if buf:
                     self.websocket_server.manager.broadcast(buf, binary=True)
                 elif self.converter.poll() is not None:
@@ -152,6 +160,19 @@ class USBCamera(Thread):
             
     def run(self):
         self.start_recording()
+
+    def list_cameras(self):
+        index = 0
+        arr = []
+        while True:
+            cap = cv2.VideoCapture(index)
+            if not cap.read()[0]:
+                break
+            else:
+                arr.append(index)
+            cap.release()
+            index += 1
+        return arr
         
 
 
