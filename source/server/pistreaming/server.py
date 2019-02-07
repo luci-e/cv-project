@@ -1,10 +1,7 @@
-#!/usr/bin/env python
-
 import sys
 import io
-import os
-import shutil
 import time
+import asyncio
 
 from subprocess import Popen, PIPE, DEVNULL
 from string import Template
@@ -12,21 +9,14 @@ from struct import Struct
 from threading import Thread
 from time import sleep, time
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from wsgiref.simple_server import make_server
 
 import cv2
-from ws4py.websocket import WebSocket
-from ws4py.server.wsgirefserver import (
-    WSGIServer,
-    WebSocketWSGIHandler,
-    WebSocketWSGIRequestHandler,
-)
-from ws4py.server.wsgiutils import WebSocketWSGIApplication
+import websockets
 
 ###########################################
 # CONFIGURATION
-WIDTH = 320
-HEIGHT = 240
+WIDTH = 640
+HEIGHT = 480
 FRAMERATE = 30
 HTTP_PORT = 8082
 WS_PORT = 8084
@@ -82,11 +72,6 @@ class StreamingHttpServer(HTTPServer):
             self.jsmpg_content = f.read()
 
 
-class StreamingWebSocket(WebSocket):
-    def opened(self):
-        self.send(JSMPEG_HEADER.pack(JSMPEG_MAGIC, WIDTH, HEIGHT), binary=True)
-
-
 class BroadcastOutput(object):
     def __init__(self, camera):
         print('Spawning background conversion process')
@@ -94,7 +79,7 @@ class BroadcastOutput(object):
             self.converter = Popen([
                 'ffmpeg',
                 '-f', 'rawvideo',
-                '-pix_fmt', 'rgb24',
+                '-pix_fmt', 'bgr24',
                 '-r', f'{camera.framerate}',
                 '-s', f' {int(camera.resolution[0])}x{int(camera.resolution[1])}',
                 '-i', '-',
@@ -102,7 +87,6 @@ class BroadcastOutput(object):
                 '-bufsize', '2048k',
                 '-r', '30',
                 '-f', 'mpeg1video',
-                '-s', '320x240',
                 '-'],
                 stdin=PIPE, stdout=PIPE, close_fds=False,
                 shell=False)
@@ -122,21 +106,49 @@ class BroadcastOutput(object):
 
 
 class BroadcastThread(Thread):
-    def __init__(self, converter, websocket_server):
+    def __init__(self, converter ):
         super(BroadcastThread, self).__init__()
         self.converter = converter
-        self.websocket_server = websocket_server
+        self.connected = set()
 
-    def run(self):
+    def stop(self):
+        self.done = True
+
+    async def greet(self, websocket, path):
+        # Register.
+        self.connected.add(websocket)
+        try:
+            await websocket.send(JSMPEG_HEADER.pack(JSMPEG_MAGIC, WIDTH, HEIGHT))
+            while True:
+                await asyncio.sleep(10)
+        finally:
+            # Unregister.
+            print('Goodbye socket')
+            self.connected.remove(websocket)
+
+    async def broadcast(self):
         try:
             while True:
-                buf = self.converter.stdout.read1(2048)
+                await asyncio.sleep(1.0/30.0)
+                buf = self.converter.stdout.read1(32768)
                 if buf:
-                    self.websocket_server.manager.broadcast(buf, binary=True)
+                    for ws in self.connected:
+                        await ws.send(buf)
                 elif self.converter.poll() is not None:
                     break
         finally:
             self.converter.stdout.close()
+
+    def run(self):
+        # Create a new event loop for asyncio, start serving by creating a
+        # new request handler for each new connection
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
+        conn = websockets.serve(self.greet, 'localhost', WS_PORT)
+
+        asyncio.get_event_loop().run_until_complete(conn)
+        asyncio.get_event_loop().create_task(self.broadcast())
+        asyncio.get_event_loop().run_forever()
 
 
 class USBCamera(Thread):
@@ -173,35 +185,29 @@ class USBCamera(Thread):
             cap.release()
             index += 1
         return arr
-        
 
 
 def main():
     print('Initializing camera')
     
     camera = USBCamera( int( sys.argv[1] ) )
+
     print('Initializing websockets server on port %d' % WS_PORT)
-    WebSocketWSGIHandler.http_version = '1.1'
-    websocket_server = make_server(
-        '', WS_PORT,
-        server_class=WSGIServer,
-        handler_class=WebSocketWSGIRequestHandler,
-        app=WebSocketWSGIApplication(handler_cls=StreamingWebSocket))
-    websocket_server.initialize_websockets_manager()
-    websocket_thread = Thread(target=websocket_server.serve_forever)
+
+
     print('Initializing HTTP server on port %d' % HTTP_PORT)
     http_server = StreamingHttpServer()
     http_thread = Thread(target=http_server.serve_forever)
+
     print('Initializing broadcast thread')
     output = BroadcastOutput(camera)
-    broadcast_thread = BroadcastThread(output.converter, websocket_server)
+    broadcast_thread = BroadcastThread(output.converter)
     
     camera.output = output
     print('Starting recording')
     try:
         camera.start()
-        print('Starting websockets thread')
-        websocket_thread.start()
+
         print('Starting HTTP server thread')
         http_thread.start()
         print('Starting broadcast thread')
@@ -213,12 +219,8 @@ def main():
         broadcast_thread.join()
         print('Shutting down HTTP server')
         http_server.shutdown()
-        print('Shutting down websockets server')
-        websocket_server.shutdown()
         print('Waiting for HTTP server thread to finish')
         http_thread.join()
-        print('Waiting for websockets thread to finish')
-        websocket_thread.join()
 
 
 if __name__ == '__main__':
