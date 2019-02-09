@@ -133,7 +133,10 @@ class BroadcastThread(Thread):
                 buf = self.converter.stdout.read1(32768)
                 if buf:
                     for ws in self.connected:
-                        await ws.send(buf)
+                        try:
+                            await ws.send(buf)
+                        except:
+                            pass
                 elif self.converter.poll() is not None:
                     break
         finally:
@@ -204,10 +207,9 @@ def main():
     broadcast_thread = BroadcastThread(output.converter)
     
     camera.output = output
-    print('Starting recording')
     try:
+        print('Starting recording')
         camera.start()
-
         print('Starting HTTP server thread')
         http_thread.start()
         print('Starting broadcast thread')

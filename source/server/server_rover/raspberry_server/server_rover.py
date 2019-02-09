@@ -8,9 +8,28 @@ import asyncio
 import websockets
 import logging
 import serial
+import cv2
+import io
 
-from enum import Flag
+from subprocess import Popen, PIPE, DEVNULL
+from string import Template
+from struct import Struct
 from threading import Thread
+from time import sleep, time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from enum import Flag
+
+###########################################
+# CONFIGURATION
+WIDTH = 640
+HEIGHT = 480
+FRAMERATE = 30
+JSMPEG_MAGIC = b'jsmp'
+JSMPEG_HEADER = Struct('>4sHH')
+VFLIP = False
+HFLIP = False
+
+###########################################
 
 
 # The enum of the possible directions the rover can move
@@ -138,8 +157,10 @@ class rover_HAL():
 # class. Although not enforced, this is a singleton.
 class rover_data():
     def __init__(self):
-        self.PORT = 8888
+        self.cmd_port = 8888
+        self.stream_port = 8889
         self.serial_port = ''
+        self.camera_no = 0
 
 
 class rover_request_handler():
@@ -411,10 +432,129 @@ class rover_server_thread(Thread):
         # new request handler for each new connection
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-        conn = websockets.serve(self.greet, '0.0.0.0', rover_shared_data.PORT)
+        conn = websockets.serve(self.greet, '0.0.0.0', rover_shared_data.cmd_port)
 
         awaitable = asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().run_forever()
+
+
+
+class BroadcastOutput(object):
+    def __init__(self, camera):
+        print('Spawning background conversion process')
+        try:
+            self.converter = Popen([
+                'ffmpeg',
+                '-f', 'rawvideo',
+                '-pix_fmt', 'bgr24',
+                '-r', f'{camera.framerate}',
+                '-s', f' {int(camera.resolution[0])}x{int(camera.resolution[1])}',
+                '-i', '-',
+                '-maxrate', '1024k',
+                '-bufsize', '2048k',
+                '-r', '30',
+                '-f', 'mpeg1video',
+                '-'],
+                stdin=PIPE, stdout=PIPE, stderr=DEVNULL, close_fds=False,
+                shell=False)
+
+        except Exception as inst:
+            print(type(inst))    # the exception instance
+            print(inst.args)     # arguments stored in .args
+            print(inst)              
+
+    def write(self, b):
+        self.converter.stdin.write(b)
+
+    def flush(self):
+        print('Waiting for background conversion process to exit')
+        self.converter.stdin.close()
+        self.converter.wait()
+
+
+class BroadcastThread(Thread):
+    def __init__(self, converter ):
+        super(BroadcastThread, self).__init__()
+        self.converter = converter
+        self.connected = set()
+
+    def stop(self):
+        self.done = True
+
+    async def greet(self, websocket, path):
+        # Register.
+        self.connected.add(websocket)
+        try:
+            await websocket.send(JSMPEG_HEADER.pack(JSMPEG_MAGIC, WIDTH, HEIGHT))
+            while True:
+                await asyncio.sleep(10)
+        finally:
+            # Unregister.
+            print('Goodbye socket')
+            self.connected.remove(websocket)
+
+    async def broadcast(self):
+        try:
+            while True:
+                await asyncio.sleep(1.0/30.0)
+                buf = self.converter.stdout.read1(32768)
+                if buf:
+                    for ws in self.connected:
+                        try:
+                            await ws.send(buf)
+                        except:
+                            pass
+                elif self.converter.poll() is not None:
+                    break
+        finally:
+            self.converter.stdout.close()
+
+    def run(self):
+        # Create a new event loop for asyncio, start serving by creating a
+        # new request handler for each new connection
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
+        conn = websockets.serve(self.greet, '0.0.0.0', rover_shared_data.stream_port)
+
+        asyncio.get_event_loop().run_until_complete(conn)
+        asyncio.get_event_loop().create_task(self.broadcast())
+        asyncio.get_event_loop().run_forever()
+
+
+class USBCamera(Thread):
+    def __init__(self, camera_no ):
+        super(USBCamera, self).__init__()
+        self.cam_no = camera_no
+        self.cap = cv2.VideoCapture( self.cam_no )
+        self.resolution = ( self.cap.get( cv2.CAP_PROP_FRAME_WIDTH ) , self.cap.get( cv2.CAP_PROP_FRAME_HEIGHT ) )
+        self.framerate = self.cap.get( cv2.CAP_PROP_FPS )
+        self.vflip = VFLIP
+        self.hflip = HFLIP
+        
+        self.output = None
+    
+    def start_recording( self ):
+        while True:
+            # Capture frame-by-frame
+            ret, frame = self.cap.read()
+            # Our operations on the frame come here
+            self.output.write(frame.tostring())
+            
+    def run(self):
+        self.start_recording()
+
+    def list_cameras(self):
+        index = 0
+        arr = []
+        while True:
+            cap = cv2.VideoCapture(index)
+            if not cap.read()[0]:
+                break
+            else:
+                arr.append(index)
+            cap.release()
+            index += 1
+        return arr
 
 
 # >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
@@ -428,13 +568,16 @@ def main():
 
     # Standard argument parsing
     parser = argparse.ArgumentParser(description='Start the dispatcher')
-    parser.add_argument('-p', '--port', default=8888, type=int, help='The port on which to open the server')
-    parser.add_argument('-s', '--serial', default='/dev/ttyUSB0',
-                        help='The serial port to communicate with the arduino')
+    parser.add_argument('-c', '--command_port', default=8888, type=int, help='The port on which to open the server')
+    parser.add_argument('-t', '--stream_port', default=8889, type=int, help='The port on which to open the websocket')
+    parser.add_argument('-s', '--serial', default='/dev/ttyUSB0', help='The serial port to communicate with the arduino')
+    parser.add_argument('-n', '--camera_no', default=0, type=int, help='The camera number from which to take the stream')
     args = parser.parse_args()
 
-    rover_shared_data.PORT = args.port
+    rover_shared_data.cmd_port = args.command_port
+    rover_shared_data.stream_port = args.stream_port
     rover_shared_data.serial_port = args.serial
+    rover_shared_data.camera_no = args.camera_no
 
     rover_hal.open_serial()
 
@@ -442,10 +585,34 @@ def main():
     # logger.setLevel(logging.DEBUG)
     # logger.addHandler(logging.StreamHandler())
 
-    # Start server
-    server_thread = rover_server_thread()
-    server_thread.start()
+    print('Initializing camera')
+    camera = USBCamera( rover_shared_data.camera_no )
 
+    print('Initializing broadcast thread')
+    output = BroadcastOutput(camera)
+    broadcast_thread = BroadcastThread(output.converter)
+
+    print('Initializing command thread')
+    server_thread = rover_server_thread()
+
+    camera.output = output
+    print('Starting recording')
+
+    try:
+        print('Starting recording')
+        camera.start()
+        print('Starting broadcast thread')
+        broadcast_thread.start()
+        print('Starting command server')
+        server_thread.start()
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print('Waiting for broadcast thread to finish')
+        broadcast_thread.join()
+        print('Waiting for command thread to finish')
+        server_thread.join()
 
 if __name__ == '__main__':
     main()
