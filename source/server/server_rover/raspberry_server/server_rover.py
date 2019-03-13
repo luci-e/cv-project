@@ -10,6 +10,8 @@ import logging
 import serial
 import cv2
 import io
+import numpy as np
+import cv2
 
 from subprocess import Popen, PIPE, DEVNULL
 from string import Template
@@ -521,6 +523,23 @@ class BroadcastThread(Thread):
         asyncio.get_event_loop().run_forever()
 
 
+class CvHelper():
+
+    def __init__(self):
+        self.face_cascade = cv.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
+        self.eye_cascade = cv.CascadeClassifier('haarcascades/haarcascade_eye.xml')
+
+    def detect_faces(self, img):
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+        for (x,y,w,h) in faces:
+            cv.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = img[y:y+h, x:x+w]
+            eyes = self.eye_cascade.detectMultiScale(roi_gray)
+            for (ex,ey,ew,eh) in eyes:
+                cv.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+
+
 class USBCamera(Thread):
     def __init__(self, camera_no ):
         super(USBCamera, self).__init__()
@@ -532,6 +551,8 @@ class USBCamera(Thread):
         self.hflip = HFLIP
         
         self.output = None
+
+        self.cv_helper = CvHelper()
     
     def start_recording( self ):
         while True:
@@ -548,6 +569,7 @@ class USBCamera(Thread):
         arr = []
         while True:
             cap = cv2.VideoCapture(index)
+            self.cv_helper.detect_faces(cap)
             if not cap.read()[0]:
                 break
             else:
