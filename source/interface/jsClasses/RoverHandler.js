@@ -14,6 +14,15 @@ export default class RoverHandler {
 
 		if(createTab != false)
 				this.addToWindow();
+
+
+
+		// Show loading notice
+		var canvas = document.getElementById('videoCanvas');
+
+		// Setup the WebSocket connection and start the player
+		var client = new WebSocket('ws://192.168.0.22:8889/');
+		var player = new jsmpeg(client, {canvas:canvas});
 	}
 
 	addToWindow() {
@@ -130,21 +139,9 @@ export default class RoverHandler {
 
 		action(this);
 
-		var that = this;
-		this.movement = setInterval(
-			function() {
-
-				action(that);
-
-			}, timeForAction
-		);
-
-
-
-
 	}
 
-	forward(obj) {
+	forward() {
 
 		var msg = {
 			cmd: "move",
@@ -152,52 +149,73 @@ export default class RoverHandler {
 				direction: ["forward"]
 			}
 		};
-		obj.lastMsg = msg;
-		obj.sendMsg(msg);
+		this.lastMsg = msg;
+		this.sendMsg(msg);
 
-		console.log(obj.getId()+": Sending move forward message");
+		console.log(this.getId()+": Sending move forward message");
 
 	}
 
 
 	stopAction() {
-		clearInterval(this.movement);
+
+		var msg = {
+			cmd: "move_stop",
+			params: {
+				motors: ["wheels"]
+			}
+		};
+		this.lastMsg = msg;
+		this.sendMsg(msg);
 	}
 
-	right(obj) {
 
-		console.log(obj.getId()+": Sending move right message");
+	stopCamera() {
+
+		var msg = {
+			cmd: "move_stop",
+			params: {
+				motors: ["camera"]
+			}
+		};
+		this.lastMsg = msg;
+		this.sendMsg(msg);
+	}
+
+	right() {
+
+		console.log(this.getId()+": Sending move right message");
 
 		var msg = {
 			cmd: "move",
 			params: {
-				direction: ["right"]
+				direction: ["cw"]
 			}
 		}
 
-		obj.lastMsg = msg;
+		this.lastMsg = msg;
 
-		obj.sendMsg(msg);
+		this.sendMsg(msg);
 	}
 
-	left(obj) {
+	left() {
 
-		console.log(obj.getId()+": Sending move left message");
+		console.log(this.getId()+": Sending move left message");
 
 		var msg = {
 			cmd: "move",
 			params: {
-				direction: ["left"]
+				direction: ["ccw"]
 			}
 		}
 
-		obj.lastMsg = msg;
-		obj.sendMsg(msg);
+		this.lastMsg = msg;
+		this.sendMsg(msg);
 	}
 	
-	backward(obj) {
+	backward() {
 
-		console.log(obj.getId()+": Sending move left message");
+		console.log(this.getId()+": Sending move backward message");
 
 		var msg = {
 			cmd: "move",
@@ -206,10 +224,47 @@ export default class RoverHandler {
 			}
 		}
 
-		obj.lastMsg = msg;
+		this.lastMsg = msg;
 
-		obj.sendMsg(msg);
+		this.sendMsg(msg);
 	}
+
+
+	cw() {
+
+		console.log(this.getId()+": Sending move cw message");
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["forward", "right"]
+			}
+		}
+
+		this.lastMsg = msg;
+
+		this.sendMsg(msg);
+	}
+
+
+	ccw() {
+
+		console.log(this.getId()+": Sending move cw message");
+
+		var msg = {
+			cmd: "move",
+			params: {
+				direction: ["forward", "left"]
+			}
+		}
+
+		this.lastMsg = msg;
+
+		this.sendMsg(msg);
+	}
+
+
+
 
 	handleAnswer(message) {
 		console.log("Received message from server: "+message.data);
@@ -223,6 +278,53 @@ export default class RoverHandler {
 			cmd: "move_cam",
 			params: {
 				direction: "up"
+			}
+		};
+
+		this.lastMsg = msg;
+		this.sendMsg(msg);
+	}
+
+
+	cameraDown() {
+
+		console.log("HELLO THERE");
+
+		var msg = {
+			cmd: "move_cam",
+			params: {
+				direction: "down"
+			}
+		};
+
+		this.lastMsg = msg;
+		this.sendMsg(msg);
+	}
+
+	laserOn() {
+
+		console.log("HELLO THERE");
+
+		var msg = {
+			cmd: "laser_ctrl",
+			params: {
+				action: "on"
+			}
+		};
+
+		this.lastMsg = msg;
+		this.sendMsg(msg);
+	}
+
+
+	laserOff() {
+
+		console.log("HELLO THERE");
+
+		var msg = {
+			cmd: "laser_ctrl",
+			params: {
+				action: "off"
 			}
 		};
 

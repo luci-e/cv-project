@@ -15,6 +15,8 @@ html, body {
 	flex-direction: row;
 	align-items: stretch;
 	overflow:hidden;
+
+	background: black;
 }
 
 body {
@@ -42,7 +44,7 @@ body {
 	flex-direction: row;
 	align-items:stretch;
 
-	border:1px solid black;
+	
 	flex:1;
 }
 
@@ -52,24 +54,23 @@ body {
 	flex-direction: column;
 	align-items:stretch;
 
-	border:1px solid black;
+	
 	flex:1;
 }
 
 .flex-element {
-	border:1px solid black;
 }
 
-#video-container {
+#useless-container {
 	flex-basis: 80%;
 	
-	border:1px solid black;
+	
 }
 
 #list-container {
 
 	flex-basis: 20%;	
-	border:1px solid black;
+	
 
 }
 
@@ -79,30 +80,57 @@ body {
 	display: flex;
 	width:40px;
 	height:40px;
-	border:1px solid black;
+}
+
+.cameraButton {
+	position:absolute;
+	width:120px;
+	height:120px;
+	
+	align-items:center;
+	justify-content: center;
+
+}
+
+.buttonKey {
+	position:absolute;
+	width:60px;
+	height:60px;
+	
 	align-items:center;
 	justify-content: center;
 }
 
 #commands-container {
 	align-items: center;
-	flex-basis:160px;
-	flex:0;
-	margin:40px;
+	flex:1;
+	justify-content: space-between;
 }
 
 #arrowkeys {
 	align-items: center;
-	flex-basis:160px;
+	flex-basis:241px;
+	min-width:241px;
 	flex:0;
+	width:241px;
+	height:241px;
+	background: url("img/arrowkeys.png") 0px 0px;
+	position: relative;
 	
 }
 
 #cameraControls {
 	align-items: center;
-	flex-basis:160px;
+	flex-basis:241px;
+	min-width: 241px;
+
 	flex:0;
-	margin-left:40px;
+	
+	width:241px;
+	height:241px;
+	background: url("img/camerakeys.png") 0px 0px;
+
+	position: relative;
 }
 
 #top-row {
@@ -110,8 +138,8 @@ body {
 }
 
 #bottom-row {
-	flex-basis:200px;
-	justify-content: flex-start;
+	flex-basis:400px;
+	
 	align-items:center;
 }
 
@@ -125,6 +153,6 @@ body {
 
 	flex-basis:200px;
 
-	border:1px solid black;
+	
 
 }

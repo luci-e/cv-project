@@ -4,38 +4,37 @@
 	<title>ZA WARUDO</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0"/>
+	<meta name="viewport" content="user-scalable=no, initial-scale=0.8, maximum-scale=0.8"/>
 </head>
 <body>
 
+	<canvas id="videoCanvas" width="1920" height="1080" style="position:absolute; top:0px; left:0px; width:100%; height:100%;">
+	</canvas>
 
 	<div id="wrapper">
+
 
 		<div id="box" class="flex-column">
 			<div id="tabs" class="flex-row"></div>
 			<div id="top-row" class="flex-row">
-				<div id="video-container" class="flex-element">Video Here</div>
-				<div id="list-container" class="flex-element">List here</div>
+				<div id="useless-container" class="flex-element"></div>
+				<div id="list-container" class="flex-element"></div>
 			</div>
 			<div id="bottom-row" class="flex-row">
 				<div id="commands-container" class="flex-row">
 					<div id="arrowkeys" class="flex-column">
-						<div id="r1" class="flex-row">
-							<div id="forward" class="button">^</div>
-						</div>
-						<div id="r2" class="flex-row">
-							<div id="left" class="button"><</div>
-							<div id="backward" class="button">v</div>
-							<div id="right" class="button">></div>
-						</div>
+							<div id="forward" class="buttonKey" style="top:30px; left:95px;"></div>
+							<div id="left" class="buttonKey" style="top:90px; left:35px;"></div>
+							<div id="backward" class="buttonKey" style="top:150px; left:95px;""></div>
+							<div id="right" class="buttonKey" style="top:90px; left:155px;"></div>
+
+							<div id="ccw" class="buttonKey" style="top:30px; left:35px;"></div>
+							<div id="cw" class="buttonKey" style="top:30px; left:155px;"></div>
+
 					</div>
 					<div id="cameraControls" class="flex-column">
-						<div id="r1" class="flex-row">
-							<div id="cameraUp" class="button">^</div>
-						</div>
-						<div id="r2" class="flex-row">
-							<div id="cameraDown" class="button">v</div>
-						</div>
+						<div id="cameraUp" class="cameraButton"></div>
+						<div id="cameraDown" class="cameraButton" style="top:120px"></div>
 					</div>
 				</div>
 			</div>
@@ -43,8 +42,25 @@
 
 	</div>
 
-
+	<script type="text/javascript" src="jsmpg.js"></script>
 	<script type="module" src="main.js"></script>
+
+
+	<script>
+
+		var canvas = document.getElementById("videoCanvas");
+		var ratio = window.innerWidth/window.innerHeight;
+		console.log(ratio);
+
+		canvas.width = 640;
+		canvas.height = 640/ratio;
+
+		if(ratio < 1) {
+			canas.height=480;
+			canvas.width=640/ratio;
+		}
+
+	</script>
 
 </body>
 </html>

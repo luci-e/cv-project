@@ -4,7 +4,7 @@ import * as RL from './RoverLibs.js';
 
 
 var PORT = 8888;
-var SOCKET_ADDR = 'ws://192.168.1.65:'+PORT;
+var SOCKET_ADDR = 'ws://192.168.0.22:'+PORT;
 var CONNECTION_METHOD = '';
 
 
