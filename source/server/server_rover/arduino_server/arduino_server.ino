@@ -184,6 +184,14 @@ class rover_HAL {
     int wheels_target_steps = 0;
     int camera_target_steps = 0;
 
+    // The approximate position of the motors, in step
+    // wrt to the 0 position
+    // only the camera is implemented since we only want to limit that
+    int camera_position = 0;
+
+    // The limits for the camera motor
+    int camera_limits[2] = {-1024, 1024};
+
     rover_HAL() {
     }
 
@@ -272,16 +280,25 @@ class rover_HAL {
       return ROVER_STATUS::OK;
     }
 
-    ROVER_STATUS move_cam() {
+    ROVER_STATUS move_cam() {      
       if( (this->camera_current_steps < this->camera_target_steps) || (this->camera_target_steps == static_cast<int>(MOTOR_STEPS::INFINITE) ) ){
         CAM_DIRECTION direction = this->current_camera_direction;
         
         if ( static_cast<int>(direction) & static_cast<int>(CAM_DIRECTION::UP) ) {
+          if( this->camera_position == this->camera_limits[1] ){
+            return ROVER_STATUS::CAM_TOP_LIMIT;
+          }
           //Serial.println("moving up");
           this->camera_motor->step_motor(true);
+          this->camera_position += 1;
         } if ( static_cast<int>(direction) & static_cast<int>(CAM_DIRECTION::DOWN) ) {
           //Serial.println("moving down");
+          if( this->camera_position == this->camera_limits[0] ){
+            return ROVER_STATUS::CAM_BOTTOM_LIMIT;
+          }
+          
           this->camera_motor->step_motor(false);
+          this->camera_position -= 1;
         }
 
         this->camera_current_steps++;
