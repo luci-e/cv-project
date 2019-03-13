@@ -1,0 +1,8 @@
+Arduino
+
+> Set limit switch to camera
+> Use output from ultrasonic sensor
+
+Raspberry
+
+> 
