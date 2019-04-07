@@ -1,9 +1,10 @@
 'use strict';
 
 export default class RoverHandler {
-	constructor(id, bindings, serverAddress, connectionMethod, createTab) {
+	constructor(id, bindings, serverAddress, commandPort, streamingPort, createTab) {
 		this.serverAddress = serverAddress;
-		this.connectionMethod = connectionMethod;
+		this.commandPort = commandPort;
+		this.streamingPort = streamingPort;
 		this.rovers = [];
 		this.socket;
 		this.lastMsg;
@@ -13,15 +14,15 @@ export default class RoverHandler {
 		this.getCommandHandler().bind(this);
 
 		if(createTab != false)
-				this.addToWindow();
+			this.addToWindow();
 
 
 
 		// Show loading notice
-		var canvas = document.getElementById('videoCanvas');
+		var canvas = document.getElementById('videoInput');
 
 		// Setup the WebSocket connection and start the player
-		var client = new WebSocket('ws://192.168.0.22:8889/');
+		var client = new WebSocket(this.serverAddress+':'+this.streamingPort);
 		var player = new jsmpeg(client, {canvas:canvas});
 	}
 
@@ -67,9 +68,9 @@ export default class RoverHandler {
 	connectToServer() {
 
 		if(this.connectionMethod)
-			this.socket = new WebSocket(this.serverAddress, [this.connectionMethod]);
+			this.socket = new WebSocket(this.serverAddress+':'+this.commandPort, [this.connectionMethod]);
 		else
-			this.socket = new WebSocket(this.serverAddress);
+			this.socket = new WebSocket(this.serverAddress+':'+this.commandPort);
 
 		var that = this;
 		this.socket.onmessage = this.handleAnswer;
