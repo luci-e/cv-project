@@ -76,7 +76,7 @@ export default class RoverHandler {
 		this.socket.onmessage = this.handleAnswer;
 
 		this.socket.onopen = function(event) {
-			console.log("Succesfully connected to remove server!");
+			console.log("Succesfully connected to remote server!");
 		}
 
 		this.socket.onmessage = function (answer) {
