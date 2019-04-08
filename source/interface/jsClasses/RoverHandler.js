@@ -64,7 +64,6 @@ export default class RoverHandler {
 		return this.id;
 	}
 
-
 	connectToServer() {
 
 		if(this.connectionMethod)
