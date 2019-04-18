@@ -11,6 +11,7 @@ import serial
 import cv2
 import io
 import numpy as np
+import socket
 
 from subprocess import Popen, PIPE, DEVNULL
 from string import Template
@@ -25,11 +26,9 @@ from enum import Flag
 WIDTH = 640
 HEIGHT = 480
 FRAMERATE = 30
-JSMPEG_MAGIC = b'jsmp'
-JSMPEG_HEADER = Struct('>4sHH')
 VFLIP = False
-HFLIP = False
-
+HFLIP = True
+STREAM_HEADER = Struct('>4sHH')
 
 ###########################################
 
@@ -166,17 +165,22 @@ class rover_data():
 
 
 class rover_request_handler():
-    def __init__(self, websocket, path, cleanup_fun=None):
-        self.socket = websocket
-        self.path = path
+    def __init__(self, reader, writer, cleanup_fun=None):
+        self.reader = reader
+        self.writer = writer
         self.cleanup_fun = cleanup_fun
 
     async def serve(self):
-        print(self.socket)
         try:
-            async for message in self.socket:
-                print('{message}')
-                await self.process(message)
+            while True:
+                line = await self.reader.readline()
+                if not line:
+                    break
+
+                line = line.decode('latin1').rstrip()
+                if line:
+                    print('{line}')
+                    await self.process(line)
 
             print('Bye Bye JoJo')
             self.cleanup_fun(self)
@@ -223,7 +227,7 @@ class rover_request_handler():
     async def send_message(self, message):
         try:
             encoded_msg = json.dumps(message)
-            await self.socket.send(encoded_msg)
+            await self.writer.write(encoded_msg.encode())
         except:
             print('Connection lost')
 
@@ -418,9 +422,9 @@ class rover_server_thread(Thread):
     def stop(self):
         self.done = True
 
-    async def greet(self, websocket, path):
+    async def greet(self, reader, writer):
         print('Client connected')
-        request_handler = rover_request_handler(websocket, path, cleanup_fun=self.cleanup)
+        request_handler = rover_request_handler(reader, writer, cleanup_fun=self.cleanup)
         self.active_connections.add(request_handler)
         await request_handler.serve()
 
@@ -434,9 +438,9 @@ class rover_server_thread(Thread):
         # new request handler for each new connection
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-        conn = websockets.serve(self.greet, '0.0.0.0', rover_shared_data.cmd_port)
+        conn = asyncio.start_server(self.greet, '0.0.0.0', rover_shared_data.cmd_port)
 
-        awaitable = asyncio.get_event_loop().run_until_complete(conn)
+        asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().run_forever()
 
 
@@ -444,22 +448,18 @@ class BroadcastOutput(object):
     def __init__(self, camera):
         print('Spawning background conversion process')
         try:
-            self.converter = Popen([
-                'ffmpeg',
-                '-f', 'rawvideo',
-                '-pix_fmt', 'bgr24',
-                '-r', f'{camera.framerate}',
-                '-s', f' {int(camera.resolution[0])}x{int(camera.resolution[1])}',
-                '-i', '-',
-                '-maxrate', '1024k',
-                '-bufsize', '32',
-                '-r', '30',
-                '-f', 'mpeg1video',
-                '-'],
-                stdin=PIPE, stdout=PIPE, stderr=DEVNULL, close_fds=False,
-                shell=False)
+            bitrate = 6000
+            command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -r {camera.framerate} -s \
+{int(camera.resolution[0])}x{int(camera.resolution[1])} -i - \
+-threads 8 -r 30 -c:v mpeg2video -b:v 5000k -pix_fmt yuv420p -g 1 \
+-f mpegts -'
+
+            print(command)
+
+            self.converter = Popen(command, stdin=PIPE, stdout=PIPE, close_fds=False, shell=False)
 
         except Exception as inst:
+            print('Error opening the converter')
             print(type(inst))  # the exception instance
             print(inst.args)  # arguments stored in .args
             print(inst)
@@ -478,21 +478,23 @@ class BroadcastThread(Thread):
         super(BroadcastThread, self).__init__()
         self.converter = converter
         self.connected = set()
+        self.done = False
 
     def stop(self):
         self.done = True
 
-    async def greet(self, websocket, path):
+    async def greet(self, reader, writer):
         # Register.
-        self.connected.add(websocket)
+        self.connected.add((reader, writer))
         try:
-            await websocket.send(JSMPEG_HEADER.pack(JSMPEG_MAGIC, WIDTH, HEIGHT))
+            #writer.write(f'{{ "width" : {WIDTH}, "height":{HEIGHT} }}\n'.encode())
+            #await writer.drain()
             while True:
                 await asyncio.sleep(10)
         finally:
             # Unregister.
             print('Goodbye socket')
-            self.connected.remove(websocket)
+            self.connected.remove((reader, writer))
 
     async def broadcast(self):
         try:
@@ -500,11 +502,17 @@ class BroadcastThread(Thread):
                 await asyncio.sleep(1.0 / 30.0)
                 buf = self.converter.stdout.read1(32768)
                 if buf:
-                    for ws in self.connected:
+                    dead_sockets = set()
+
+                    for s in self.connected:
                         try:
-                            await ws.send(buf)
-                        except:
-                            pass
+                            s[1].write(buf)
+                            await s[1].drain()
+                        except Exception as e:
+                            print('Error writing to socket')
+                            dead_sockets.add(s)
+
+                    self.connected -= dead_sockets
                 elif self.converter.poll() is not None:
                     break
         finally:
@@ -515,28 +523,11 @@ class BroadcastThread(Thread):
         # new request handler for each new connection
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-        conn = websockets.serve(self.greet, '0.0.0.0', rover_shared_data.stream_port)
+        conn = asyncio.start_server(self.greet, '0.0.0.0', rover_shared_data.stream_port)
 
         asyncio.get_event_loop().run_until_complete(conn)
         asyncio.get_event_loop().create_task(self.broadcast())
         asyncio.get_event_loop().run_forever()
-
-
-class CvHelper():
-
-    def __init__(self):
-        self.face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
-        self.eye_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_eye.xml')
-
-    def detect_faces(self, img):
-        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
-        for (x, y, w, h) in faces:
-            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            roi_gray = gray[y:y + h, x:x + w]
-            roi_color = img[y:y + h, x:x + w]
-            eyes = self.eye_cascade.detectMultiScale(roi_gray)
-            for (ex, ey, ew, eh) in eyes:
-                cv2.rectangle(roi_color, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2)
 
 
 class USBCamera(Thread):
@@ -548,35 +539,19 @@ class USBCamera(Thread):
         self.framerate = self.cap.get(cv2.CAP_PROP_FPS)
         self.vflip = VFLIP
         self.hflip = HFLIP
-
         self.output = None
-
-        self.cv_helper = CvHelper()
 
     def start_recording(self):
         while True:
             # Capture frame-by-frame
             ret, frame = self.cap.read()
-            # Our operations on the frame come here
-            self.output.write(frame.tostring())
+
+            if ret:
+                # Our operations on the frame come here
+                self.output.write(frame.tostring())
 
     def run(self):
         self.start_recording()
-
-    def list_cameras(self):
-        index = 0
-        arr = []
-        while True:
-            cap = cv2.VideoCapture(index)
-            self.cv_helper.detect_faces(cap)
-            if not cap.read()[0]:
-                break
-            else:
-                arr.append(index)
-            cap.release()
-            index += 1
-        return arr
-
 
 # >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
 

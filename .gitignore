@@ -8,3 +8,5 @@ Include/
 tcl/
 
 pip-selfcheck\.json
+
+\.idea/

@@ -1,55 +1,75 @@
-import http.server
-import socketserver
 import pdb
-import os 
+import os
 import json
 import time
 import sys
 import argparse
+import asyncio
+from subprocess import Popen, PIPE, DEVNULL
 
 from threading import Thread
+import numpy as np
+import cv2
 
-PORT = 80
 BASE_DIR = ''
 
-class shal_request_handler( http.server.SimpleHTTPRequestHandler ):
-	def __init__( self, request, client_address, server):
-	    super(shal_request_handler, self).__init__( request, client_address, server )
-	    #TODO : add code to send initial json list
+
+async def read_from_stream(reader, output):
+    print('Starting reading from socket')
+    while True:
+        data = await reader.read(128)
+        output.write(data)
 
 
-class HTTP_server_thread(Thread):    
-    def __init__(self):
-        Thread.__init__(self)
-        self.done = False
+async def video_decoder():
+    cascade_path = './haarcascades/haarcascade_frontalface_alt.xml'
+    faceCascade = cv2.CascadeClassifier(cascade_path)
 
-    def stop(self):
-        self.done = True
+    cap = cv2.VideoCapture('udp://192.168.1.125:2000')
 
-    def run(self):
-        print('HTTP Server started')
-        with socketserver.TCPServer(("", PORT), shal_request_handler) as httpd:
-            print( f'serving at port {PORT} at base dir {BASE_DIR}' )
-            httpd.serve_forever()
+    while True:
+        ret, frame = cap.read()
+
+        if ret:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            faces = faceCascade.detectMultiScale(
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=5,
+                minSize=(30, 30),
+                flags=cv2.CASCADE_SCALE_IMAGE
+            )
+
+            for (x, y, w, h) in faces:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # Display the resulting frame
+            cv2.imshow('frame', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    print('Close the connection')
+
 
 def main():
-	global PORT, BASE_DIR
+    global PORT, BASE_DIR
 
-	# Standard argument parsing
-	parser = argparse.ArgumentParser( description = 'Start the dispatcher')
-	parser.add_argument('-p', '--port' , default = 80, type = int , help = 'The port on which to open the server')
-	parser.add_argument('-b', '--base_dir' , default = '../../interface', help = 'The base directory of the server')
-	args = parser.parse_args()
+    # Standard argument parsing
+    parser = argparse.ArgumentParser(description='Start the dispatcher')
+    parser.add_argument('-p', '--port', default=80, type=int, help='The port on which to open the server')
+    parser.add_argument('-b', '--base_dir', default='.', help='The base directory of the server')
+    args = parser.parse_args()
 
-	BASE_DIR = args.base_dir
-	PORT = args.port
+    BASE_DIR = args.base_dir
+    PORT = args.port
 
-	# Move script to http folder
-	os.chdir(BASE_DIR)
+    # Move script to http folder
+    print(f'Base dir:{BASE_DIR}')
+    os.chdir(BASE_DIR)
 
-	# Start server
-	http_thread = HTTP_server_thread()
-	http_thread.start()
+    asyncio.run(video_decoder())
+
 
 if __name__ == '__main__':
     main()
