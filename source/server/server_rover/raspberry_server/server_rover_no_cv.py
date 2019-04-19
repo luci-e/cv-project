@@ -449,10 +449,11 @@ class BroadcastOutput(object):
         print('Spawning background conversion process')
         try:
             bitrate = 6000
-            command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -r {camera.framerate} -s \
-{int(camera.resolution[0])}x{int(camera.resolution[1])} -i - \
+            command = f'ffmpeg -f dshow -vcodec mjpeg -r {camera.framerate} -s \
+{int(camera.resolution[0])}x{int(camera.resolution[1])} -i video="FULL HD 1080P Webcam" \
 -threads 8 -r 30 -c:v mpeg2video -b:v 10000k -pix_fmt yuv420p  \
--f rtp rtp://localhost:8888'
+-f mpegts udp://localhost:8888'
+
 
             print(command)
 
@@ -472,79 +473,15 @@ class BroadcastOutput(object):
         self.converter.stdin.close()
         self.converter.wait()
 
-
-class BroadcastThread(Thread):
-    def __init__(self, converter):
-        super(BroadcastThread, self).__init__()
-        self.converter = converter
-        self.connected = set()
-        self.done = False
-
-    def stop(self):
-        self.done = True
-
-    async def greet(self, reader, writer):
-        # Register.
-        print('Client connected')
-        self.connected.add((reader, writer))
-
-
-    async def broadcast(self):
-        try:
-            while True:
-                await asyncio.sleep(1.0)
-                buf = self.converter.stdout.read1(32768)
-                if buf:
-                    dead_sockets = set()
-
-                    for s in self.connected:
-                        try:
-                            s[1].write(buf)
-                            await s[1].drain()
-                        except Exception as e:
-                            print('Error writing to socket')
-                            dead_sockets.add(s)
-
-                    self.connected -= dead_sockets
-                elif self.converter.poll() is not None:
-                    break
-        finally:
-            self.converter.stdout.close()
-
-    def run(self):
-        # Create a new event loop for asyncio, start serving by creating a
-        # new request handler for each new connection
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
-        conn = asyncio.start_server(self.greet, '0.0.0.0', rover_shared_data.stream_port)
-
-        asyncio.get_event_loop().run_until_complete(conn)
-        asyncio.get_event_loop().create_task(self.broadcast())
-        asyncio.get_event_loop().run_forever()
-
-
-class USBCamera(Thread):
+class USBCamera():
     def __init__(self, camera_no):
-        super(USBCamera, self).__init__()
         self.cam_no = camera_no
         self.cap = cv2.VideoCapture(self.cam_no)
         self.resolution = (self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.framerate = self.cap.get(cv2.CAP_PROP_FPS)
         self.vflip = VFLIP
         self.hflip = HFLIP
-        self.output = None
-
-    def start_recording(self):
-        while True:
-            # Capture frame-by-frame
-            ret, frame = self.cap.read()
-
-            if ret:
-                # Our operations on the frame come here
-                self.output.write(frame.tostring())
-
-    def run(self):
-        self.start_recording()
+        self.cap.release()
 
 # >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
 
@@ -581,7 +518,6 @@ def main():
 
     print('Initializing broadcast thread')
     output = BroadcastOutput(camera)
-    broadcast_thread = BroadcastThread(output.converter)
 
     print('Initializing command thread')
     server_thread = rover_server_thread()
@@ -590,18 +526,12 @@ def main():
     print('Starting recording')
 
     try:
-        print('Starting recording')
-        camera.start()
-        print('Starting broadcast thread')
-        broadcast_thread.start()
         print('Starting command server')
         server_thread.start()
 
     except KeyboardInterrupt:
         pass
     finally:
-        print('Waiting for broadcast thread to finish')
-        broadcast_thread.join()
         print('Waiting for command thread to finish')
         server_thread.join()
 

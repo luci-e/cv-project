@@ -25,7 +25,7 @@ async def video_decoder():
     cascade_path = './haarcascades/haarcascade_frontalface_alt.xml'
     faceCascade = cv2.CascadeClassifier(cascade_path)
 
-    cap = cv2.VideoCapture('udp://192.168.1.125:2000')
+    cap = cv2.VideoCapture('udp://localhost:8888')
 
     while True:
         ret, frame = cap.read()
