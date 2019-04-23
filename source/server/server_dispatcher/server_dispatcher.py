@@ -25,7 +25,7 @@ async def video_decoder():
     cascade_path = './haarcascades/haarcascade_frontalface_alt.xml'
     faceCascade = cv2.CascadeClassifier(cascade_path)
 
-    cap = cv2.VideoCapture('udp://localhost:8888')
+    cap = cv2.VideoCapture('conf.sdp')
 
     while True:
         ret, frame = cap.read()
@@ -67,6 +67,7 @@ def main():
     # Move script to http folder
     print(f'Base dir:{BASE_DIR}')
     os.chdir(BASE_DIR)
+    os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'protocol_whitelist;file,rtp,udp'
 
     asyncio.run(video_decoder())
 
