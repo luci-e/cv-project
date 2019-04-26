@@ -2,10 +2,20 @@ Da PRoTOcOL
 
 >>>>>>>>>> ROVER COMMANDS <<<<<<<<<<
 
+Common fields
+
+"client_id" the id of the client
+"server_id" the id of the server
+"rover_id" the id of the rover to which a command is issued
+"timestamp" the time at which the command is issued
+
 Command move request
 
 {
-	"cmd" : "move",
+    "client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
+   	"cmd" : "move",
 	"params" : {
 		"direction" : [ "direction", "direction" ]
 	}
@@ -18,6 +28,8 @@ If you feed "forward" "back" or "left" "right" or "left" "left" or "right" "righ
 Command move response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -30,6 +42,9 @@ Command move response
 Command move camera request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "move_cam",
 	"params" : {
 		"direction" : "direction"
@@ -41,6 +56,8 @@ Command move camera request
 Command move camera response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -53,6 +70,9 @@ Command move camera response
 Command stop request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "move_stop",
 	"params" : {
 		"motors" : [ "motors", "motors" ]
@@ -64,6 +84,8 @@ Command stop request
 Command stop response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -76,6 +98,9 @@ Command stop response
 Command track person request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "track",
 	"params" : {
 		"id" : "id"
@@ -87,6 +112,8 @@ Command track person request
 Command track response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -99,12 +126,17 @@ Command track response
 Command untrack person request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "untrack"
 }
 
 Command untrack response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -117,6 +149,9 @@ Command untrack response
 Command attack person request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "attack",
 	"params" : {
 		"id" : "id"
@@ -128,6 +163,8 @@ Command attack person request
 Command attack response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -140,6 +177,9 @@ Command attack response
 Command stop attacking person request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "stop_attack",
 }
 
@@ -148,6 +188,8 @@ Command stop attacking person request
 Command attack response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -160,6 +202,9 @@ Command attack response
 Command laser control request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "laser_ctrl",
 	"params" : {
 		"action" : "action"
@@ -171,6 +216,8 @@ Command laser control request
 Command laser control response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "msg",
 	"info" : "failure_reason"
 }
@@ -183,12 +230,17 @@ Command laser control response
 Command list faces request
 
 {
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"cmd" : "list_faces",
 }
 
 Command list response
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"faces" : [
 		"id"
 	]
@@ -201,6 +253,8 @@ Command list response
 The server can also send the following messages:
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "failed",
 	"info" : "parsing_error"
 }
@@ -208,6 +262,8 @@ The server can also send the following messages:
 in case of badly formatted.
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
 	"msg" : "failed",
 	"info" : "unknown_cmd"
 }
@@ -221,6 +277,7 @@ if the command is not valid
 Command list request
 
 {
+	"client_id" : "UUID",
 	"cmd" : "list"
 }
 
@@ -228,22 +285,99 @@ Command list request
 Command response
 
 {
+    "server_id" : "UUID",
 	"rovers" : [
 		{
-			"id" : "id",
-			"address" : "address",
-			"port" : "port"
+			"rover_id" : "UUID",
+			"description" : "description",
 		}
 	]
 }
 
-"id" is the id of the rorver
-"address" is actually muda since the public address is the same
-"port" is the port on which the rover communicates
-
+"id" is the id of the rover
+"description" is a description of the rover
 
 ----------------------------------------------------------------------------------------------------
 
+Command hello request
+
+{
+	"client_id" : "UUID",
+	"cmd" : "hello"
+}
+
+Command response
+
+{
+    "server_id" : "UUID",
+    "msg" : "ack"
+}
+
+"msg" is "ack"
+
+----------------------------------------------------------------------------------------------------
+
+Command connect request
+
+{
+	"client_id" : "UUID",
+	"rover_id" : "UUID",
+	"cmd" : "connect"
+}
+
+Command response
+
+{
+    "server_id" : "UUID",
+    "client_id" : "UUID",
+   	"rover_id" : "UUID",
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "bad_rover_id" or "busy"
+
+----------------------------------------------------------------------------------------------------
+
+This message is sent only once on the stream, then the client must not send anything on this stream
+
+Command stream connect request
+
+{
+	"client_id" : "UUID",
+	"rover_id" : "UUID",
+	"cmd" : "connect"
+}
+
+Command response
+
+{
+    "server_id" : "UUID",
+    "client_id" : "UUID",
+   	"rover_id" : "UUID",
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "bad_rover_id" or "busy"
+
+----------------------------------------------------------------------------------------------------
+
+Command connect request
+
+{
+	"client_id" : "UUID",
+	"rover_id" : "UUID",
+	"cmd" : "bye"
+}
+
+Command response
+
+None
+
+----------------------------------------------------------------------------------------------------
 
 >>>>>>>>>> SERVER MESSAGES <<<<<<<<<<
 
@@ -252,6 +386,9 @@ The server may asynchronously send messages to the client notifying it of event.
 Event person entered
 
 {
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "person_entered",
 	"data" : {
 		"id" : "id"
@@ -266,6 +403,9 @@ Sent when a person enters the view of the camera.
 Event person left
 
 {
+	"server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "person_left",
 	"data" : {
 		"id" : "id"
@@ -280,6 +420,9 @@ Sent when a person leaves the view of the camera.
 Event tracking lost
 
 {
+	"server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "tracking_lost",
 	"data" : {
 		"id" : "id"
@@ -294,6 +437,9 @@ Sent when the tracked person leaves the view of the camera.
 Event tracking resumed
 
 {
+	"server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "tracking_resumed",
 	"data" : {
 		"id" : "id"
@@ -308,6 +454,9 @@ Sent after a tracking_lost event if the person comes back in the view of the cam
 Event obstacle hit
 
 {
+	"server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "obstacle_hit",
 	"data" : {
 		"distance" : distance
@@ -315,13 +464,16 @@ Event obstacle hit
 }
 
 distance is the value of the distance.
-Sent after the frontal distance to an obstacle is <= of a threhsold.
+Sent after the frontal distance to an obstacle is <= of a threshold.
 
 ----------------------------------------------------------------------------------------------------
 
 Event battery low
 
 {
+	"server_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
 	"event" : "battery_low",
 	"data" : {
 		"amount" : percentage
@@ -329,7 +481,7 @@ Event battery low
 }
 
 percentage is the percentage of the battery left.
-Sent when the battery level is <= of a threhsold. This event is not implemented lol.
+Sent when the battery level is <= of a threshold. This event is not implemented lol.
 
 ----------------------------------------------------------------------------------------------------
 
