@@ -1,36 +1,15 @@
-import pdb
-import os
 import json
-import time
-import sys
 import argparse
 import asyncio
-import websockets
-import logging
 import serial
 import cv2
-import io
-import numpy as np
-import socket
+import atexit
+import uuid
 
-from subprocess import Popen, PIPE, DEVNULL
-from string import Template
 from struct import Struct
 from threading import Thread
 from time import sleep, time
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from enum import Flag
-
-###########################################
-# CONFIGURATION
-WIDTH = 640
-HEIGHT = 480
-FRAMERATE = 30
-VFLIP = False
-HFLIP = True
-STREAM_HEADER = Struct('>4sHH')
-
-###########################################
 
 
 # The enum of the possible directions the rover can move
@@ -70,6 +49,18 @@ class ROVER_STATUS(Flag):
     BLOCKED = 1
     CAM_TOP_LIMIT = 2
     CAM_BOTTOM_LIMIT = 4
+
+
+# A class holding all data that is common to the rover and can be accessed by any other
+# class. Although not enforced, this is a singleton.
+class RoverData:
+    def __init__(self):
+        self.cmd_port = 6666
+        self.stream_port = 7777
+        self.conf_file_name = 'conf.sdp'
+        self.server_address = ''
+        self.serial_port = ''
+        self.camera_no = 0
 
 
 # The rover Hardware Abastraction Layer handles all requests that must be handled
@@ -154,44 +145,47 @@ class rover_HAL():
         return ROVER_STATUS.OK
 
 
-# A class holding all data that is common to the rover and can be accessed by any other
-# class. Although not enforced, this is a singleton.
-class rover_data():
+# >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
+
+rover_hal = rover_HAL()
+rover_shared_data = RoverData()
+
+
+class RoverRequestHandler:
     def __init__(self):
-        self.cmd_port = 8888
-        self.stream_port = 1935
-        self.server_address = ''
-        self.serial_port = ''
-        self.camera_no = 0
+        self.reader = None
+        self.writer = None
+        self.id = uuid.uuid1()
 
+    async def connect(self):
+        self.reader, self.writer = await asyncio.open_connection(rover_shared_data.server_address,
+                                                                 rover_shared_data.cmd_port)
 
-class rover_request_handler():
-    def __init__(self, reader, writer, cleanup_fun=None):
-        self.reader = reader
-        self.writer = writer
-        self.cleanup_fun = cleanup_fun
+        hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello', 'description': 'I\'m a little rover!'}
+        await self.send_message(hello_cmd)
+
+    async def send_stream_info(self):
+        with open(rover_shared_data.conf_file_name) as f:
+            conf_string = f.read()
+            set_stream_cmd = {'rover_id': str(self.id), 'cmd': 'set_stream', 'conf': conf_string}
+            await self.send_message(set_stream_cmd)
 
     async def serve(self):
+        await self.send_stream_info()
+
         try:
             while True:
                 line = await self.reader.readline()
-                if not line:
-                    break
 
-                line = line.decode('latin1').rstrip()
+                line = line.decode()
                 if line:
                     print('{line}')
                     await self.process(line)
-
-            print('Bye Bye JoJo')
-            self.cleanup_fun(self)
 
         except Exception as e:
             print(type(e))  # the exception instance
             print(e.args)  # arguments stored in .args
             print(e)
-
-            print('Connection lost')
 
     async def process(self, message):
         try:
@@ -227,9 +221,12 @@ class rover_request_handler():
     # Send the message, given as dictionary, to the socket, encoded as json
     async def send_message(self, message):
         try:
-            encoded_msg = json.dumps(message)
+            encoded_msg = json.dumps(message)+'\n'
             await self.writer.write(encoded_msg.encode())
-        except:
+        except Exception as e:
+            print(type(e))  # the exception instance
+            print(e.args)  # arguments stored in .args
+            print(e)
             print('Connection lost')
 
     # Creates a standard error response, where the info field is set as failure reason
@@ -414,67 +411,32 @@ class rover_request_handler():
         pass
 
 
-class rover_server_thread(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-        self.done = False
-        self.active_connections = set()
-
-    def stop(self):
-        self.done = True
-
-    async def greet(self, reader, writer):
-        print('Client connected')
-        request_handler = rover_request_handler(reader, writer, cleanup_fun=self.cleanup)
-        self.active_connections.add(request_handler)
-        await request_handler.serve()
-
-    def cleanup(self, request_handler):
-        self.active_connections.remove(request_handler)
-
-    def run(self):
-        print('Rover Server started')
-
-        # Create a new event loop for asyncio, start serving by creating a 
-        # new request handler for each new connection
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
-        conn = asyncio.start_server(self.greet, '0.0.0.0', rover_shared_data.cmd_port)
-
-        asyncio.get_event_loop().run_until_complete(conn)
-        asyncio.get_event_loop().run_forever()
-
-
 class BroadcastOutput(object):
     def __init__(self, camera):
         print('Spawning background conversion process')
-        try:
-            bitrate = 6000
-            command = f'ffmpeg \
+        self.command = f'ffmpeg \
 -f v4l2 -input_format mjpeg -re -i /dev/video0 \
--vcodec libx265 -preset ultrafast \
+-vcodec libx265 -preset ultrafast -tune zerolatency \
 -map 0:0 -threads 8 -an \
--muxdelay 0.001 -b:v 500k \
--sdp_file conf.sdp \
+-muxdelay 0.001 -b:v 1000k \
+-sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 
-            print(command)
+        print(self.command)
+        self.converter = None
 
-            self.converter = Popen(command, stdin=PIPE, close_fds=False, shell=True)
+    async def start(self):
+        atexit.register(self.cleanup)
+        self.converter = await asyncio.create_subprocess_shell(self.command, stdin=asyncio.subprocess.PIPE,
+                                                               close_fds=False,
+                                                               shell=True)
 
-        except Exception as inst:
-            print('Error opening the converter')
-            print(type(inst))  # the exception instance
-            print(inst.args)  # arguments stored in .args
-            print(inst)
+    def cleanup(self):
+        self.converter.kill()
 
     def write(self, b):
         self.converter.stdin.write(b)
 
-    def flush(self):
-        print('Waiting for background conversion process to exit')
-        self.converter.stdin.close()
-        self.converter.wait()
 
 class USBCamera():
     def __init__(self, camera_no):
@@ -482,23 +444,16 @@ class USBCamera():
         self.cap = cv2.VideoCapture(self.cam_no)
         self.resolution = (self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.framerate = self.cap.get(cv2.CAP_PROP_FPS)
-        self.vflip = VFLIP
-        self.hflip = HFLIP
         self.cap.release()
 
-# >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
 
-rover_hal = rover_HAL()
-rover_shared_data = rover_data()
-
-
-def main():
+async def main():
     global rover_shared_data
 
     # Standard argument parsing
     parser = argparse.ArgumentParser(description='Start the dispatcher')
-    parser.add_argument('-c', '--command_port', default=8888, type=int, help='The port on which to open the server')
-    parser.add_argument('-t', '--stream_port', default=1935, type=int, help='The port on which to open the websocket')
+    parser.add_argument('-c', '--command_port', default=6666, type=int, help='The port on which to open the server')
+    parser.add_argument('-t', '--stream_port', default=7777, type=int, help='The port on which to open the websocket')
     parser.add_argument('-s', '--serial', default='/dev/ttyUSB0',
                         help='The serial port to communicate with the arduino')
     parser.add_argument('-a', '--server_address', required=True,
@@ -526,21 +481,14 @@ def main():
     output = BroadcastOutput(camera)
 
     print('Initializing command thread')
-    server_thread = rover_server_thread()
+    rover_handler = RoverRequestHandler()
 
-    camera.output = output
     print('Starting recording')
 
-    try:
-        print('Starting command server')
-        server_thread.start()
-
-    except KeyboardInterrupt:
-        pass
-    finally:
-        print('Waiting for command thread to finish')
-        server_thread.join()
+    await asyncio.gather(rover_handler.connect(), output.start())
+    await rover_handler.serve()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
+    asyncio.get_event_loop().run_forever()

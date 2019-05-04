@@ -365,7 +365,7 @@ Command response
 
 ----------------------------------------------------------------------------------------------------
 
-Command connect request
+Command disconnect request
 
 {
 	"client_id" : "UUID",
@@ -484,6 +484,52 @@ percentage is the percentage of the battery left.
 Sent when the battery level is <= of a threshold. This event is not implemented lol.
 
 ----------------------------------------------------------------------------------------------------
+
+>>>>>>>>>> ROVER MESSAGES <<<<<<<<<<
+
+Command stream connect request
+
+{
+	"rover_id" : "UUID",
+	"cmd" : "hello",
+	"description" : "description"
+}
+
+"description" is a short description of the rover
+
+Command response
+
+{
+    "server_id" : "UUID",
+	"msg" : "ok",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "bad_rover_id" or "busy"
+
+----------------------------------------------------------------------------------------------------
+
+Command stream connect request
+
+{
+	"rover_id" : "UUID",
+	"cmd" : "set_stream",
+	"conf" : "conf_string"
+}
+
+"conf" is the sdp file for the configuration of the stream
+
+Command response
+
+{
+    "server_id" : "UUID",
+	"msg" : "ok",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "bad_rover_id" or "busy"
 
 >>>>>>>>>> COMMUNICATION <<<<<<<<<<
 
