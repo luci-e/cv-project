@@ -1,348 +1,403 @@
 'use strict';
+import uuid4 from '../libs/uuid.js';
 
 export default class RoverHandler {
-	constructor(id, bindings, serverAddress, commandPort, streamingPort, createTab) {
-		this.serverAddress = serverAddress;
-		this.commandPort = commandPort;
-		this.streamingPort = streamingPort;
-		this.rovers = [];
-		this.socket;
-		this.lastMsg;
-		this.id= id;
-		this.commandHandler = bindings;
+    constructor(name, bindings, serverAddress, commandPort, streamingPort, createTab) {
+        this.serverAddress = serverAddress;
+        this.commandPort = commandPort;
+        this.streamingPort = streamingPort;
+        this.rovers = [];
+        this.socket;
 
-		this.getCommandHandler().bind(this);
+        this.lastCtrlMsg;
+        this.lastStreamMsg;
 
-		if(createTab != false)
-			this.addToWindow();
+        this.id= uuid4();
+        this.name=name;
+        this.commandHandler = bindings;
+        // Show loading notice
+        this.canvas = document.getElementById('videoInput');
 
+        this.getCommandHandler().bind(this);
 
+        if(createTab != false)
+            this.addToWindow();
 
-		// Show loading notice
-		var canvas = document.getElementById('videoInput');
+        // Setup the WebSocket connection and start the player
+        //var client = new WebSocket(this.serverAddress+':'+this.streamingPort);
+        //var player = new jsmpeg(client, {canvas:this.canvas});
+    }
 
-		// Setup the WebSocket connection and start the player
-		var client = new WebSocket(this.serverAddress+':'+this.streamingPort);
-		var player = new jsmpeg(client, {canvas:canvas});
-	}
+    addToWindow() {
 
-	addToWindow() {
+        var that = this;
 
-		var that = this;
+        var tab = document.createElement("div");
+        tab.className="tab-element";
 
-		var tab = document.createElement("div");
-		tab.className="tab-element";
+        tab.onclick=function() {
+            that.foreground();
+        }
 
-		tab.onclick=function() {
-			that.foreground();
-		}
+        tab.appendChild(document.createTextNode(this.getId()));
 
-		tab.appendChild(document.createTextNode(this.getId()));
 
+        document.getElementById("tabs").appendChild(tab);
 
-		document.getElementById("tabs").appendChild(tab);
+    }
 
-	}
+    foreground() {
 
-	foreground() {
+        console.log("Switching to rover: "+this.getId());
 
-		console.log("Switching to rover: "+this.getId());
+        var videoWindow = document.getElementById("video-container");
+        var listWindow  = document.getElementById("list-container");
 
-		var videoWindow = document.getElementById("video-container");
-		var listWindow  = document.getElementById("list-container");
+        //DO STUFF with the windows
 
-		//DO STUFF with the windows
+        this.getCommandHandler().bind(this);
+    }
 
-		this.getCommandHandler().bind(this);
-	}
+    getCommandHandler() {
+        return this.commandHandler;
+    }
 
-	getCommandHandler() {
-		return this.commandHandler;
-	}
+    getId() {
+        return this.id;
+    }
 
-	getId() {
-		return this.id;
-	}
+    connectToServer() {
 
-	connectToServer() {
+        if(this.connectionMethod)
+            this.socket = new WebSocket(this.serverAddress+':'+this.commandPort, [this.connectionMethod]);
+        else
+            this.socket = new WebSocket(this.serverAddress+':'+this.commandPort);
 
-		if(this.connectionMethod)
-			this.socket = new WebSocket(this.serverAddress+':'+this.commandPort, [this.connectionMethod]);
-		else
-			this.socket = new WebSocket(this.serverAddress+':'+this.commandPort);
+        //var that = this;
+        this.socket.onmessage = this.handshakeHandler.bind(this);
 
-		var that = this;
-		this.socket.onmessage = this.handleAnswer;
+        this.socket.onopen = function(event) {
+            console.log("Succesfully connected to remote server!");
+            this.handshakeHandler(null);
+        }.bind(this);
 
-		this.socket.onopen = function(event) {
-			console.log("Succesfully connected to remote server!");
-		}
+        // this.socket.onmessage = function (answer) {
+        //     that.handleAnswer(answer);
+        // }
 
-		this.socket.onmessage = function (answer) {
-			that.handleAnswer(answer);
-		}
 
-		this.socket.onclose = function(event) {
-			console.log("Connection to remote server closed!")
-		}
+        this.socket.onclose = function(event) {
+            console.log("Connection to remote server closed!")
+        }
 
-		this.socket.onerror = function(event) {
-			console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
-		}
+        this.socket.onerror = function(event) {
+            console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
+        }
+    }
 
-	}
 
-	getSocket() {
-		return this.socket;
-	}
+    getSocket() {
+        return this.socket;
+    }
 
+    handshakeHandler(answer){
+        if(answer == null){
+            let hello_msg = {
+                "client_id": this.id,
+                "cmd": "hello"
+            }
 
-	handleAnswer(answer) {
+            this.lastCtrlMsg = hello_msg;
+            this.sendCtrlMsg(hello_msg);
+        }else{
+            let message = JSON.parse(answer.data);
 
-		//console.log(answer.data);
+            switch(this.lastCtrlMsg.cmd){
+                case "hello":{
+                    console.log(message);
 
-		answer = JSON.parse(answer.data);
+                    let list_cmd = {
+                        "client_id": this.id,
+                        "cmd": "list"
+                    }
 
-		if(this.lastMsg) {
-			switch(this.lastMsg.cmd) {
-				case "move":
+                    this.lastCtrlMsg = list_cmd;
+                    this.sendCtrlMsg(list_cmd);
+                    break;
+                }
 
-						if(answer.msg == "ok")
-							console.log("SHA moved forward!");
+                case "list":{
+                    console.log(message);
+                    this.rovers = message['rovers'];
 
-						else if(answer.msg == "failed")
-							console.log("SHA exploded")
+                    let connect_cmd = {
+                        "client_id": this.id,
+                        "rover_id": message['rovers'][0]['rover_id'],
+                        "cmd": "connect"
+                    }
 
-					break;
-				
+                    this.lastCtrlMsg = connect_cmd;
+                    this.sendCtrlMsg(connect_cmd);
+                    break;
+                }
 
-			}
-		}
-		else {
-			console.log("Received an unexpected message:");
-			console.log(answer);
-		}
-	}
+                case "connect":{
+                    console.log(message);
+                    this.socket.onmessage = this.handleAnswer.bind(this);
+                    break;
+                }
+            }
 
-	sendMsg(msg) {
+        }
 
-		try {
-				this.getSocket().send(JSON.stringify(msg));
-		}
-		catch(e) {
-			console.log("\t-> Could not send message, still not connected!");
-		}
-	}
+    }
 
+    handleAnswer(answer) {
 
-	repeatAction(action, timeForAction) {
+        //console.log(answer.data);
 
-		action(this);
+        answer = JSON.parse(answer.data);
 
-	}
+        if(this.lastCtrlMsg) {
+            switch(this.lastCtrlMsg.cmd) {
+                case "move":
 
-	forward() {
+                    if(answer.msg == "ok")
+                        console.log("SHA moved forward!");
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["forward"]
-			}
-		};
-		this.lastMsg = msg;
-		this.sendMsg(msg);
+                    else if(answer.msg == "failed")
+                        console.log("SHA exploded")
 
-		console.log(this.getId()+": Sending move forward message");
+                    break;
 
-	}
 
+            }
+        }
+        else {
+            console.log("Received an unexpected message:");
+            console.log(answer);
+        }
+    }
 
-	stopAction() {
+    sendCtrlMsg(msg) {
 
-		var msg = {
-			cmd: "move_stop",
-			params: {
-				motors: ["wheels"]
-			}
-		};
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
+        try {
+            this.getSocket().send(JSON.stringify(msg)+'\n');
+        }
+        catch(e) {
+            console.log("\t-> Could not send message, still not connected!");
+        }
+    }
 
 
-	stopCamera() {
+    repeatAction(action, timeForAction) {
 
-		var msg = {
-			cmd: "move_stop",
-			params: {
-				motors: ["camera"]
-			}
-		};
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
+        action(this);
 
-	right() {
+    }
 
-		console.log(this.getId()+": Sending move right message");
+    forward() {
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["cw"]
-			}
-		}
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["forward"]
+            }
+        };
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
 
-		this.lastMsg = msg;
+        console.log(this.getId()+": Sending move forward message");
 
-		this.sendMsg(msg);
-	}
+    }
 
-	left() {
 
-		console.log(this.getId()+": Sending move left message");
+    stopAction() {
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["ccw"]
-			}
-		}
+        var msg = {
+            cmd: "move_stop",
+            params: {
+                motors: ["wheels"]
+            }
+        };
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
-	
-	backward() {
 
-		console.log(this.getId()+": Sending move backward message");
+    stopCamera() {
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["back"]
-			}
-		}
+        var msg = {
+            cmd: "move_stop",
+            params: {
+                motors: ["camera"]
+            }
+        };
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
-		this.lastMsg = msg;
+    right() {
 
-		this.sendMsg(msg);
-	}
+        console.log(this.getId()+": Sending move right message");
 
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["cw"]
+            }
+        }
 
-	cw() {
+        this.lastCtrlMsg = msg;
 
-		console.log(this.getId()+": Sending move cw message");
+        this.sendCtrlMsg(msg);
+    }
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["forward", "right"]
-			}
-		}
+    left() {
 
-		this.lastMsg = msg;
+        console.log(this.getId()+": Sending move left message");
 
-		this.sendMsg(msg);
-	}
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["ccw"]
+            }
+        }
 
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
-	ccw() {
+    backward() {
 
-		console.log(this.getId()+": Sending move cw message");
+        console.log(this.getId()+": Sending move backward message");
 
-		var msg = {
-			cmd: "move",
-			params: {
-				direction: ["forward", "left"]
-			}
-		}
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["back"]
+            }
+        }
 
-		this.lastMsg = msg;
+        this.lastCtrlMsg = msg;
 
-		this.sendMsg(msg);
-	}
+        this.sendCtrlMsg(msg);
+    }
 
 
+    cw() {
 
+        console.log(this.getId()+": Sending move cw message");
 
-	handleAnswer(message) {
-		console.log("Received message from server: "+message.data);
-	}
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["forward", "right"]
+            }
+        }
 
-	cameraUp() {
+        this.lastCtrlMsg = msg;
 
-		console.log("HELLO THERE");
+        this.sendCtrlMsg(msg);
+    }
 
-		var msg = {
-			cmd: "move_cam",
-			params: {
-				direction: "up"
-			}
-		};
 
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
+    ccw() {
 
+        console.log(this.getId()+": Sending move cw message");
 
-	cameraDown() {
+        var msg = {
+            cmd: "move",
+            params: {
+                direction: ["forward", "left"]
+            }
+        }
 
-		console.log("HELLO THERE");
+        this.lastCtrlMsg = msg;
 
-		var msg = {
-			cmd: "move_cam",
-			params: {
-				direction: "down"
-			}
-		};
+        this.sendCtrlMsg(msg);
+    }
 
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
 
-	laserOn() {
 
-		console.log("HELLO THERE");
 
-		var msg = {
-			cmd: "laser_ctrl",
-			params: {
-				action: "on"
-			}
-		};
+    handleAnswer(message) {
+        console.log("Received message from server: "+message.data);
+    }
 
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
+    cameraUp() {
 
+        console.log("HELLO THERE");
 
-	laserOff() {
+        var msg = {
+            cmd: "move_cam",
+            params: {
+                direction: "up"
+            }
+        };
 
-		console.log("HELLO THERE");
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
-		var msg = {
-			cmd: "laser_ctrl",
-			params: {
-				action: "off"
-			}
-		};
 
-		this.lastMsg = msg;
-		this.sendMsg(msg);
-	}
+    cameraDown() {
 
+        console.log("HELLO THERE");
 
-	sendTestMessage() {
-		var msg = {
-			text: "KOCCHI WO MIRO!",
-			cmd: "ciccia"
-		};
+        var msg = {
+            cmd: "move_cam",
+            params: {
+                direction: "down"
+            }
+        };
 
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
-		console.log(this.getSocket());
-		this.getSocket().send(JSON.stringify(msg));
+    laserOn() {
 
-		console.log("Test Message sent to server!");
-	}
+        console.log("HELLO THERE");
+
+        var msg = {
+            cmd: "laser_ctrl",
+            params: {
+                action: "on"
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+
+    laserOff() {
+
+        console.log("HELLO THERE");
+
+        var msg = {
+            cmd: "laser_ctrl",
+            params: {
+                action: "off"
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+
+    sendTestMessage() {
+        var msg = {
+            text: "KOCCHI WO MIRO!",
+            cmd: "ciccia"
+        };
+
+
+        console.log(this.getSocket());
+        this.getSocket().send(JSON.stringify(msg));
+
+        console.log("Test Message sent to server!");
+    }
 }

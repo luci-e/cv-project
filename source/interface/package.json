@@ -1,0 +1,9 @@
+{
+  "name": "node_modules",
+  "version": "1.0.0",
+  "dependencies": {
+    "uuid": "^3.3.2",
+    "ws": "latest",
+    "async-limiter": "latest"
+  }
+}

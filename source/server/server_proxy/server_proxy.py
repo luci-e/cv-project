@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import asyncio
+import time
 import uuid
 import atexit
 
@@ -14,9 +15,9 @@ import cv2
 
 class ServerData():
     def __init__(self):
-        self.stream_port = 7778
+        self.stream_port = 8889
         self.ctrl_port = 6666
-        self.e_ctrl_port = 6667
+        self.e_ctrl_port = 8888
 
 
 class StreamData():
@@ -64,6 +65,7 @@ class VideoCaptureTreading:
         self.started = False
         self.thread = None
         self.read_lock = threading.Lock()
+        self.read_next = True
 
     def start(self):
         print(f'Starting to capture from {self.src}')
@@ -78,21 +80,28 @@ class VideoCaptureTreading:
 
     def update(self):
         while self.started:
+            time.sleep(1.0 / 25.0)
             grabbed, frame = self.cap.read()
-            with self.read_lock:
-                self.grabbed = grabbed
-                self.frame = frame
+
+            if self.read_next:
+                with self.read_lock:
+                    self.grabbed = grabbed
+                    self.frame = frame
+                    self.read_next = False
 
             # Display the resulting frame
-            cv2.imshow('frame', self.frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            # cv2.imshow('frame', self.frame)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
 
     def read(self):
-        with self.read_lock:
-            frame = self.frame.copy()
-            grabbed = self.grabbed
-        return grabbed, frame
+        if not self.read_next:
+            with self.read_lock:
+                frame = self.frame.copy()
+                grabbed = self.grabbed
+                self.read_next = True
+            return grabbed, frame
+        return False, None
 
     def stop(self):
         self.started = False
@@ -125,7 +134,7 @@ class RoverHandler:
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -maxrate 1024k -bufsize 2048k -r 30 -f mpeg1video -'
+            -threads 8 -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
@@ -136,6 +145,7 @@ class RoverHandler:
             asyncio.create_task(self.start_streaming())
 
             while True:
+                await asyncio.sleep(1.0 / 25.0)
                 grabbed, frame = self.cap.read()
                 if grabbed:
                     self.converter.stdin.write(frame.tostring())
@@ -150,7 +160,6 @@ class RoverHandler:
         print('Starting streaming')
         try:
             while True:
-                await asyncio.sleep(1.0 / 30.0)
                 buf = await self.converter.stdout.read(32768)
                 if buf:
                     for ws in self.stream_clients.values():
@@ -161,9 +170,9 @@ class RoverHandler:
         finally:
             self.converter.stdout.close()
 
-    def add_rover_client(self, client_id, reader, writer):
+    def add_rover_client(self, client_id, websocket):
         print(f'Rover client {client_id} added to rover {self.rover_id}')
-        self.rover_clients[client_id] = (reader, writer)
+        self.rover_clients[client_id] = websocket
 
     def add_stream_client(self, client_id, websocket):
         print(f'Stream client {client_id} added to rover {self.rover_id}')
@@ -197,50 +206,50 @@ class ProxyServer(object):
 
         await self.rover_handlers[hello_cmd['rover_id']].start_conversion()
 
-    async def greet_rover_client(self, reader, writer):
+    async def greet_rover_client(self, websocket, path):
         print('Rover Client connected')
 
-        hello_msg = await reader.readline()
-        hello_cmd = json.loads(hello_msg.decode())
-
+        hello_msg = await websocket.recv()
         print(hello_msg)
+
+        #hello_cmd = json.loads(hello_msg)
 
         hello_response = {'server_id': str(self.id), 'msg': 'ack'}
 
-        await self.send_socket_message(hello_response, writer)
+        await self.send_websocket_message(hello_response, websocket)
 
-        list_msg = await reader.readline()
+        list_msg = await websocket.recv()
         # list_cmd = json.loads(list_msg.decode())
 
         print(list_msg)
 
-        await self.do_list_command(writer)
+        await self.do_list_command(websocket)
 
-        connect_msg = await reader.readline()
-        connect_cmd = json.loads(connect_msg.decode())
+        connect_msg = await websocket.recv()
+        connect_cmd = json.loads(connect_msg)
 
         print(connect_msg)
 
-        self.rover_handlers[connect_cmd['rover_id']].add_rover_client(connect_cmd['client_id'], reader, writer)
+        self.rover_handlers[connect_cmd['rover_id']].add_rover_client(connect_cmd['client_id'], websocket)
 
         connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
                             'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
 
-        await self.send_socket_message(connect_response, writer)
+        await self.send_websocket_message(connect_response, websocket)
 
-    async def do_list_command(self, writer):
+    async def do_list_command(self, websocket):
         rovers_list = list(
             map(lambda r: {'rover_id': r.rover_id, 'description': r.description}, self.rover_handlers.values()))
 
         list_response = {'server_id': str(self.id), 'rovers': rovers_list}
 
-        await self.send_socket_message(list_response, writer)
+        await self.send_websocket_message(list_response, websocket)
 
     async def greet_stream_client(self, websocket, path):
         print('Stream Client connected')
 
         connect_msg = await websocket.recv()
-        connect_cmd = json.loads(connect_msg.decode())
+        connect_cmd = json.loads(connect_msg)
 
         connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
                             'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
@@ -264,10 +273,8 @@ class ProxyServer(object):
 
     async def server_rover_clients(self):
         print('Starting external rover server')
-        server = await asyncio.start_server(
-            self.greet_rover_client, '0.0.0.0', server_data.e_ctrl_port)
-
-        return server.serve_forever()
+        conn = websockets.serve(self.greet_rover_client, '0.0.0.0', server_data.e_ctrl_port)
+        return conn
 
     async def serve_stream_clients(self):
         print('Starting external stream server')
@@ -288,7 +295,7 @@ class ProxyServer(object):
     async def send_websocket_message(message, websocket):
         try:
             encoded_msg = json.dumps(message) + '\n'
-            await websocket.send(encoded_msg.encode())
+            await websocket.send(encoded_msg)
         except Exception as e:
             print(e)
 
@@ -304,9 +311,9 @@ async def main():
     # Standard argument parsing
     parser = argparse.ArgumentParser(description='Start the dispatcher')
     parser.add_argument('-c', '--control_port', default=6666, type=int, help='The internal ctrl port')
-    parser.add_argument('-ctrl', '--external_control_port', default=6667, type=int, help='The external ctrl port')
+    parser.add_argument('-ctrl', '--external_control_port', default=8888, type=int, help='The external ctrl port')
 
-    parser.add_argument('-t', '--stream_port', default=7778, type=int, help='The external stream port')
+    parser.add_argument('-t', '--stream_port', default=8889, type=int, help='The external stream port')
 
     args = parser.parse_args()
 

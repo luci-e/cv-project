@@ -133,25 +133,23 @@ async def stream_test():
             stream_header = await websocket.recv()
             print(stream_header)
 
-            command = f'ffplay -f mpeg1video -pix_fmt bgr24 -s 640x480 -i - '
+            command = f'ffplay -i -'
 
-            # converter = await asyncio.create_subprocess_shell(command,
-            #                                                   stdin=asyncio.subprocess.PIPE,
-            #                                                   stdout=asyncio.subprocess.PIPE,
-            #                                                   stderr=asyncio.subprocess.DEVNULL,
-            #                                                   close_fds=False, shell=True)
-            # atexit.register(lambda: converter.kill())
+            converter = await asyncio.create_subprocess_shell(command,
+                                                              stdin=asyncio.subprocess.PIPE,
+                                                              stderr=asyncio.subprocess.STDOUT,
+                                                              close_fds=False, shell=True)
+            atexit.register(lambda: converter.kill())
 
             while True:
                 frame = await websocket.recv()
-                print(frame)
-                # converter.stdin.write(frame)
+                converter.stdin.write(frame)
+                await converter.stdin.drain()
 
     except Exception as e:
         print(type(e))  # the exception instance
         print(e.args)  # arguments stored in .args
         print(e)
-        print('Connection lost')
 
 
 async def send_socket_message(message, writer):
