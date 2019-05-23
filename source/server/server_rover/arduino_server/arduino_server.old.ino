@@ -51,48 +51,69 @@ class rover_HAL {
     class motor_controller {
       public:
 
+        unsigned long stepper_delay = 1;
+
         int motor_status = 0;
-        int motor_pin = 0;
+        int motor_pins[4];
+
+        // Stepping sequence for 28BYJ-48 Stepper Motor with ULN2003 Driver
+        unsigned int motor_steps[8] = {
+          8,
+          12,
+          4,
+          6,
+          2,
+          3,
+          1,
+          9
+        };
+
+        int steps_len = 8;
 
         motor_controller() {};
 
-        motor_controller( int pin ) {
-          this->motor_pin = pin;
+        motor_controller( int* pins ) {
+          // The number representing the status of the stepper motors in the motor steps list
+          memcpy( this->motor_pins, pins, sizeof(int) * 4 );
 
-          pinMode( this->motor_pin, OUTPUT);
+          pinMode( this->motor_pins[0], OUTPUT);
+          pinMode( this->motor_pins[1], OUTPUT);
+          pinMode( this->motor_pins[2], OUTPUT);
+          pinMode( this->motor_pins[3], OUTPUT);
 
           Serial.println("Created motor controller ");
-          Serial.println( this->motor_pin );
+          Serial.println( this->motor_pins[0] );
+          Serial.println( this->motor_pins[1] );
+          Serial.println( this->motor_pins[2] );
+          Serial.println( this->motor_pins[3] );
+        }
+
+        void step_motor( bool direction ) {
+
+          if (direction) {
+            this->motor_status = (this->motor_status  + 1 ) % this->steps_len;
+          } else {
+            this->motor_status = (this->motor_status  - 1 + this->steps_len ) % this->steps_len;
+          }
+
+          //Serial.print("Motor status: ");
+          //Serial.println( this->motor_status );
+
+          unsigned int pin_values = this->motor_steps[this->motor_status];
+
+          //Serial.println( pin_values );
+
+          for ( int pin = 0 ; pin < 4; pin++ ) {
+            unsigned int v = ( pin_values >> pin ) & 1;
+            if (v) {
+              digitalWrite( this->motor_pins[pin],  HIGH);
+            } else {
+              digitalWrite( this->motor_pins[pin],  LOW);
+            }
+          }
+          delay(this->stepper_delay);
         }
     };
-
-    class movement_controller {
-      public:
-        motor_controller left_motor;
-        motor_controller right_motor;
-
-        movement_controller();
-
-        movement_controller(int * pins){
-          left_motor = motor_controller( pins[0] );
-          right_motor = motor_controller( pins[1] );
-
-        }
-    }
-
-    class camera_controller{
-      public:
-        motor_controller x_motor;
-        motor_controller z_motor;
-
-        movement_controller();
-
-        movement_controller(int * pins){
-          x_motor = motor_controller( pins[0] );
-          z_motor = motor_controller( pins[1] );
-
-        }
-    }
 
     class distance_sensor_controller {
 
@@ -145,19 +166,23 @@ class rover_HAL {
 
   public:
 
-    movement_controller move_controller;
-    camera_controller cam_controller;
-    distance_sensor_controller distance_sensor;
-    laser_controller laser;
+    motor_controller *left_motor;
+    motor_controller *right_motor;
+    motor_controller *camera_motor;
+
+    distance_sensor_controller *distance_sensor;
+    laser_controller *laser;
 
     ROVER_DIRECTION current_rover_direction = ROVER_DIRECTION::STOP;
     CAM_DIRECTION current_camera_direction = CAM_DIRECTION::STOP;
 
-    // The current movement speed
-    int current_speed = 0;
+    // The current steps of the motors
+    int wheels_current_steps = 0;
+    int camera_current_steps = 0;
 
-    // Camera last set position (x,z)
-    int camera_position[2];
+    // How many steps for the desired movement
+    int wheels_target_steps = 0;
+    int camera_target_steps = 0;
 
     // The approximate position of the motors, in step
     // wrt to the 0 position
@@ -170,9 +195,9 @@ class rover_HAL {
     rover_HAL() {
     }
 
-    void init_motors( int *motor_pins, int *camera_motor_pins) {
-      this->left_motor = new motor_controller( motor_pins[0] );
-      this->right_motor = new motor_controller( motor_pins[1] );
+    void init_motors( int *left_motor_pins, int *right_motor_pins, int *camera_motor_pins) {
+      this->left_motor = new motor_controller( left_motor_pins );
+      this->right_motor = new motor_controller( right_motor_pins );
       this->camera_motor = new motor_controller( camera_motor_pins );
     }
 
@@ -182,6 +207,19 @@ class rover_HAL {
 
     void init_laser( int laser_pin ) {
       this->laser = new laser_controller( laser_pin );
+    }
+
+    ROVER_STATUS prepare_rover_movement( ROVER_DIRECTION direction, int steps){
+      this->current_rover_direction = direction;
+      this->wheels_target_steps = steps;
+      this->wheels_current_steps = 0;
+    }
+
+    
+    ROVER_STATUS prepare_camera_movement( CAM_DIRECTION direction, int steps){
+      this->current_camera_direction = direction;
+      this->camera_target_steps = steps;
+      this->camera_current_steps = 0;
     }
 
     ROVER_STATUS move () {
@@ -282,6 +320,21 @@ class rover_HAL {
 
       return ROVER_STATUS::OK;
     }
+
+    ROVER_STATUS move_stop( ROVER_MOTORS motors ) {
+      if ( static_cast<int>(motors) & static_cast<int>(ROVER_MOTORS::WHEELS) ) {
+        this->current_rover_direction = ROVER_DIRECTION::STOP;
+        this->wheels_current_steps = 0;
+        this->wheels_target_steps = 0;
+      } if ( static_cast<int>(motors) & static_cast<int>(ROVER_MOTORS::CAMERA) ) {
+        this->current_camera_direction = CAM_DIRECTION::STOP;
+        this->camera_current_steps = 0;
+        this->camera_target_steps = 0;
+      }
+
+      return ROVER_STATUS::OK;
+    }
+
 
     ROVER_STATUS execute_command( String *command, unsigned int argcount) {
       String cmd = command[0];
