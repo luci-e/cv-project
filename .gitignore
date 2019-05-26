@@ -10,3 +10,19 @@ tcl/
 pip-selfcheck\.json
 
 \.idea/
+
+source/server/server_rover/arduino_server/\.vs/
+
+source/server/server_rover/arduino_server/__vm/
+
+source/server/server_rover/arduino_server/Debug/
+
+source/server/server_rover/arduino_server/Release/
+
+source/server/server_rover/arduino_server/arduino_server\.vcxproj\.user
+
+source/server/server_rover/arduino_server/arduino_server\.vcxproj
+
+source/server/server_rover/arduino_server/arduino_server\.vcxproj\.filters
+
+source/server/server_rover/arduino_server/CppProperties\.json
