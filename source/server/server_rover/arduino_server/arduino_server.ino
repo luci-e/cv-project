@@ -12,11 +12,11 @@ class rover_HAL {
 
 		float angle_upper_limit = 90.0, angle_lower_limit = -90.0;
 
-		unsigned int angle_min_duration,
+		int angle_min_duration,
 			angle_centre_duration,
 			angle_max_duration;
 
-		unsigned int min_ccw_speed_duration,
+		int min_ccw_speed_duration,
 			max_ccw_speed_duration,
 			min_cw_speed_duration,
 			max_cw_speed_duration,
@@ -26,23 +26,32 @@ class rover_HAL {
 
 		motor_controller(int pin) {
 			this->motor_pin = pin;
-			this->motor.attach(pin);
 
 			Serial.println("Created motor controller ");
 			Serial.println(this->motor_pin);
 		}
 
+		void attach_free_rotation() {
+			this->motor.attach(this->motor_pin, max_ccw_speed_duration, max_cw_speed_duration);
+		}
+
+		void attach_constrained_rotation() {
+			this->motor.attach(this->motor_pin, angle_min_duration, angle_max_duration);
+		}
+
 		void set_angle(float angle) {
-			angle = constrain(angle, angle_lower_limit, angle_upper_limit);
+			angle = constrain(angle, this->angle_lower_limit, this->angle_upper_limit);
 			unsigned int write_duration = this->angle_centre_duration;
 
 			if (angle < 0.0) {
-				write_duration = (int)(this->angle_centre_duration + angle * (abs(this->angle_centre_duration - this->angle_min_duration)) / 90.0);
+				write_duration = (unsigned int) map(angle, this->angle_lower_limit, 0.0, this->angle_min_duration, this->angle_centre_duration);
 			}
 			else if (angle > 0.0) {
-				write_duration = (int)(this->angle_centre_duration + angle * (abs(this->angle_max_duration - this->angle_centre_duration)) / 90.0);
+				write_duration = (unsigned int) map(angle, 0.0, this->angle_upper_limit, this->angle_centre_duration, this->angle_max_duration);
 			}
 
+			Serial.print("Writing ");
+			Serial.println(write_duration);
 			this->motor.writeMicroseconds(write_duration);
 		}
 
@@ -84,6 +93,11 @@ class rover_HAL {
 		movement_controller(int* pins) {
 			left_motor = motor_controller(pins[0]);
 			right_motor = motor_controller(pins[1]);
+		}
+
+		void attach() {
+			this->left_motor.attach_free_rotation();
+			this->right_motor.attach_free_rotation();
 		}
 
 		void update_movement() {
@@ -193,10 +207,10 @@ class rover_HAL {
 		motor_controller x_motor;
 		motor_controller z_motor;
 		CAM_DIRECTION current_camera_direction = CAM_DIRECTION::STOP;
-		int xAngle = 0, zAngle = 0;
+		float xAngle = 0, zAngle = 0;
 
-		int xAngle_upper_limit = 90, xAngle_lower_limit = -90;
-		int zAngle_upper_limit = 90, zAngle_lower_limit = -90;
+		float xAngle_upper_limit = 90.0, xAngle_lower_limit = -90.0;
+		float zAngle_upper_limit = 90.0, zAngle_lower_limit = -90.0;
 
 		float angular_velocity = 5;
 
@@ -205,6 +219,11 @@ class rover_HAL {
 		camera_controller(int* pins) {
 			x_motor = motor_controller(pins[0]);
 			z_motor = motor_controller(pins[1]);
+		}
+
+		void attach() {
+			this->x_motor.attach_constrained_rotation();
+			this->z_motor.attach_constrained_rotation();
 		}
 
 		void update_limits() {
@@ -240,7 +259,7 @@ class rover_HAL {
 
 		void update(unsigned long delta_t) {
 			if (this->current_camera_direction != CAM_DIRECTION::STOP) {
-				int delta_angle = max( (int)(this->angular_velocity * (float)delta_t / 1000.0), 1.0);
+				float delta_angle = this->angular_velocity * (float)delta_t / 1000.0;
 				Serial.println(delta_angle);
 
 				if ((this->current_camera_direction & CAM_DIRECTION::UP) != CAM_DIRECTION::STOP) {
@@ -360,17 +379,18 @@ public:
 
 	ROVER_STATUS execute_command(String* command, unsigned int argcount) {
 		String cmd = command[0];
-		String param = command[1];
-
 		cmd.toLowerCase();
-		param.toLowerCase();
 
 		Serial.print("Cmd : ");
 		Serial.println(cmd);
-		Serial.print("Param : ");
-		Serial.println(param);
 
 		if (cmd.equals("move")) {
+			String p_direction = command[1];
+			p_direction.toLowerCase();
+
+			Serial.print("Direction: ");
+			Serial.println(p_direction);
+
 			ROVER_DIRECTION dir = ROVER_DIRECTION::STOP;
 			float duration = 0;
 
@@ -378,34 +398,35 @@ public:
 			Serial.print("Front distance : ");
 			Serial.println(front_distance);
 
-			if (param.equals("w")) {
+
+			if (p_direction.equals("w")) {
 				dir = ROVER_DIRECTION::FORWARD;
 			}
-			else if (param.equals("a")) {
+			else if (p_direction.equals("a")) {
 				dir = ROVER_DIRECTION::LEFT;
 			}
-			else if (param.equals("s")) {
+			else if (p_direction.equals("s")) {
 				dir = ROVER_DIRECTION::BACK;
 			}
-			else if (param.equals("d")) {
+			else if (p_direction.equals("d")) {
 				dir = ROVER_DIRECTION::RIGHT;
 			}
-			else if (param.equals("wa")) {
+			else if (p_direction.equals("wa")) {
 				dir = ROVER_DIRECTION::FORWARD_LEFT;
 			}
-			else if (param.equals("wd")) {
+			else if (p_direction.equals("wd")) {
 				dir = ROVER_DIRECTION::FORWARD_RIGHT;
 			}
-			else if (param.equals("sa")) {
+			else if (p_direction.equals("sa")) {
 				dir = ROVER_DIRECTION::BACK_RIGHT;
 			}
-			else if (param.equals("sd")) {
+			else if (p_direction.equals("sd")) {
 				dir = ROVER_DIRECTION::BACK_LEFT;
 			}
-			else if (param.equals("e")) {
+			else if (p_direction.equals("e")) {
 				dir = ROVER_DIRECTION::CW;
 			}
-			else if (param.equals("q")) {
+			else if (p_direction.equals("q")) {
 				dir = ROVER_DIRECTION::CCW;
 			}
 			else {
@@ -422,47 +443,91 @@ public:
 
 		}
 		else if (cmd.equals("speed")) {
-			float speed = command[1].toFloat();
+			String p_speed = command[1];
+			p_speed.toLowerCase();
+
+			Serial.print("Speed: ");
+			Serial.println(p_speed);
+
+			float speed = p_speed.toFloat();
 			this->move_controller.speed_cap = speed;
 			this->move_controller.update_movement();
 		}
 		else if (cmd.equals("move_cam")) {
-			String param = command[1];
+			String p_cam_dir = command[1];
+			p_cam_dir.toLowerCase();
+
+			Serial.print("Cam dir: ");
+			Serial.println(p_cam_dir);
+
 			CAM_DIRECTION dir = CAM_DIRECTION::STOP;
 
-			if (param.equals("r")) {
+			if (p_cam_dir.equals("r")) {
+				Serial.print("Going up: ");
 				dir = CAM_DIRECTION::UP;
 			}
-			else if (param.equals("rt")) {
+			else if (p_cam_dir.equals("rt")) {
+				Serial.print("Going : up ccw");
 				dir = (CAM_DIRECTION::UP | CAM_DIRECTION::CCW);
 			}
-			else if (param.equals("ry")) {
+			else if (p_cam_dir.equals("ry")) {
+				Serial.print("Going : up cw");
 				dir = (CAM_DIRECTION::UP | CAM_DIRECTION::CW);
 			}
-			else if (param.equals("ft")) {
+			if (p_cam_dir.equals("f")) {
+				Serial.print("Going : down");
+				dir = CAM_DIRECTION::DOWN;
+			}
+			else if (p_cam_dir.equals("ft")) {
+				Serial.print("Going : down ccw");
 				dir = (CAM_DIRECTION::DOWN | CAM_DIRECTION::CCW);
 			}
-			else if (param.equals("fy")) {
+			else if (p_cam_dir.equals("fy")) {
+				Serial.print("Going : down cw");
 				dir = (CAM_DIRECTION::DOWN | CAM_DIRECTION::CW);
 			}
-			else if (param.equals("t")) {
+			else if (p_cam_dir.equals("t")) {
+				Serial.print("Going : ccw");
 				dir = CAM_DIRECTION::CCW;
 			}
-			else if (param.equals("y")) {
+			else if (p_cam_dir.equals("y")) {
+				Serial.print("Going : cw");
 				dir = CAM_DIRECTION::CW;
 			}
-			else {
-				return ROVER_STATUS::ERR;
-			}
+
+			Serial.print("Cam direction:");
+			Serial.println(static_cast<int>(dir));
 
 			// Check if it's a free movement
 			this->cam_controller.current_camera_direction = dir;
 		}
-		else if (cmd.equals("set_cam")) {
-			int xAngle = 0, zAngle = 0;
+		else if (cmd.equals("angular")) {
+			String p_angle_vel = command[1];
+			p_angle_vel.toLowerCase();
 
-			xAngle = command[1].toInt();
-			zAngle = command[2].toInt();
+			Serial.print("Angular: ");
+			Serial.println(p_angle_vel);
+
+			float angular = p_angle_vel.toFloat();
+			this->cam_controller.angular_velocity = angular;
+		}
+		else if (cmd.equals("set_cam")) {
+
+			String p_x_angle = command[1];
+			String p_z_angle = command[2];
+
+			p_x_angle.toLowerCase();
+			p_z_angle.toLowerCase();
+
+			Serial.print("Angles: ");
+			Serial.print(p_x_angle);
+			Serial.print(" ");
+			Serial.println(p_z_angle);
+
+			float xAngle = 0.0, zAngle = 0.0;
+
+			xAngle = p_x_angle.toFloat();
+			zAngle = p_z_angle.toFloat();
 
 			this->cam_controller.xAngle = xAngle;
 			this->cam_controller.zAngle = zAngle;
@@ -471,16 +536,21 @@ public:
 			this->cam_controller.current_camera_direction = CAM_DIRECTION::STOP;
 		}
 		else if (cmd.equals("laser_ctrl")) {
+			String p_laser_cmd = command[1];
+			p_laser_cmd.toLowerCase();
+
+			Serial.print("Laser cmd: ");
+			Serial.println(p_laser_cmd);
 
 			LASER_ACTION action = LASER_ACTION::OFF;
 
-			if (param.equals("o")) {
+			if (p_laser_cmd.equals("o")) {
 				action = LASER_ACTION::OFF;
 			}
-			else if (param.equals("i")) {
+			else if (p_laser_cmd.equals("i")) {
 				action = LASER_ACTION::ON;
 			}
-			else if (param.equals("p")) {
+			else if (p_laser_cmd.equals("p")) {
 				action = LASER_ACTION::BLINK;
 			}
 			else {
@@ -490,16 +560,21 @@ public:
 
 		}
 		else if (cmd.equals("move_stop")) {
+			String p_motors = command[1];
+			p_motors.toLowerCase();
+
+			Serial.print("Motors stop: ");
+			Serial.println(p_motors);
 
 			int motors = 0;
 
-			if (param.equals("w")) {
+			if (p_motors.equals("w")) {
 				this->move_controller.current_rover_direction = ROVER_DIRECTION::STOP;
 			}
-			else if (param.equals("c")) {
+			else if (p_motors.equals("c")) {
 				this->cam_controller.stop();
 			}
-			else if (param.equals("wc")) {
+			else if (p_motors.equals("wc")) {
 				this->move_controller.current_rover_direction = ROVER_DIRECTION::STOP;
 				this->cam_controller.stop();
 			}
@@ -551,6 +626,8 @@ public:
 
 			if (this->separators.indexOf(c) >= 0 || this->delimiter == c) {
 				this->current_command[argcount] = this->command_buffer.substring(0, this->current_size);
+				this->current_command[argcount].trim();
+
 				this->current_size = 0;
 				this->argcount++;
 				this->command_buffer = "";
@@ -609,15 +686,18 @@ void setup() {
 	g_rover_hal.move_controller.right_motor.max_ccw_speed_duration = 1000;
 	g_rover_hal.move_controller.right_motor.stop_duration = 1500;
 
+	g_rover_hal.move_controller.attach();
 
 	// Set camera motors properties
-	g_rover_hal.cam_controller.x_motor.angle_min_duration = 2000;
+	g_rover_hal.cam_controller.x_motor.angle_min_duration = 544;
 	g_rover_hal.cam_controller.x_motor.angle_centre_duration = 1500;
-	g_rover_hal.cam_controller.x_motor.angle_max_duration = 1000;
+	g_rover_hal.cam_controller.x_motor.angle_max_duration = 2500;
 
-	g_rover_hal.cam_controller.z_motor.angle_min_duration = 2000;
+	g_rover_hal.cam_controller.z_motor.angle_min_duration = 544;
 	g_rover_hal.cam_controller.z_motor.angle_centre_duration = 1500;
-	g_rover_hal.cam_controller.z_motor.angle_max_duration = 1000;
+	g_rover_hal.cam_controller.z_motor.angle_max_duration = 2500;
+
+	g_rover_hal.cam_controller.attach();
 
 	g_rover_hal.cam_controller.update_movement();
 }
