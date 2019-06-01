@@ -6,4 +6,4 @@ c=IN IP4 127.0.0.1
 t=0 0
 a=tool:libavformat 58.20.100
 m=video 7777 RTP/AVP 32
-b=AS:200
+b=AS:10000

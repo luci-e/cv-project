@@ -415,10 +415,10 @@ class BroadcastOutput(object):
     def __init__(self, camera):
         print('Spawning background conversion process')
         self.command = f'ffmpeg \
--f v4l2 -input_format yuyv422 -r 15 -i /dev/video0 \
+-f v4l2 -input_format yuyv422 -s 640x480 -r 30 -i /dev/video0 \
 -vcodec mpeg2video \
 -map 0:0 -threads 8 -an \
--muxdelay 0.001 -maxrate 2000k \
+-muxdelay 0.001 -b:v 10M -maxrate 10M \
 -sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 

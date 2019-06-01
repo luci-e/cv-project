@@ -140,7 +140,7 @@ export default class RoverHandler {
                         "rover_id": message['rovers'][0]['rover_id'],
                         "cmd": "connect"
                     };
-                    
+
                     this.lastCtrlMsg = connect_cmd;
                     this.sendCtrlMsg(connect_cmd);
                     break;
