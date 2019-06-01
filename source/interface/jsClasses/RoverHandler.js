@@ -6,26 +6,29 @@ export default class RoverHandler {
         this.serverAddress = serverAddress;
         this.commandPort = commandPort;
         this.streamingPort = streamingPort;
+
         this.rovers = [];
-        this.socket;
+        this.currentRoverId = null;
 
-        this.lastCtrlMsg;
-        this.lastStreamMsg;
+        this.cmd_socket = null;
+        this.stream_socket = null;
+        this.player = null;
 
-        this.id= uuid4();
-        this.name=name;
+        this.lastCtrlMsg = null;
+        this.lastStreamMsg = null;
+
+        this.id = uuid4();
+        this.name = name;
         this.commandHandler = bindings;
         // Show loading notice
-        this.canvas = document.getElementById('videoInput');
+        this.canvas = document.getElementById('videoOutput');
 
         this.getCommandHandler().bind(this);
 
-        if(createTab != false)
+        if (createTab !== false) {
             this.addToWindow();
+        }
 
-        // Setup the WebSocket connection and start the player
-        //var client = new WebSocket(this.serverAddress+':'+this.streamingPort);
-        //var player = new jsmpeg(client, {canvas:this.canvas});
     }
 
     addToWindow() {
@@ -33,11 +36,11 @@ export default class RoverHandler {
         var that = this;
 
         var tab = document.createElement("div");
-        tab.className="tab-element";
+        tab.className = "tab-element";
 
-        tab.onclick=function() {
+        tab.onclick = function () {
             that.foreground();
-        }
+        };
 
         tab.appendChild(document.createTextNode(this.getId()));
 
@@ -48,10 +51,10 @@ export default class RoverHandler {
 
     foreground() {
 
-        console.log("Switching to rover: "+this.getId());
+        console.log("Switching to rover: " + this.getId());
 
         var videoWindow = document.getElementById("video-container");
-        var listWindow  = document.getElementById("list-container");
+        var listWindow = document.getElementById("list-container");
 
         //DO STUFF with the windows
 
@@ -68,15 +71,14 @@ export default class RoverHandler {
 
     connectToServer() {
 
-        if(this.connectionMethod)
-            this.socket = new WebSocket(this.serverAddress+':'+this.commandPort, [this.connectionMethod]);
+        if (this.connectionMethod)
+            this.cmd_socket = new WebSocket(this.serverAddress + ':' + this.commandPort, [this.connectionMethod]);
         else
-            this.socket = new WebSocket(this.serverAddress+':'+this.commandPort);
+            this.cmd_socket = new WebSocket(this.serverAddress + ':' + this.commandPort);
 
-        //var that = this;
-        this.socket.onmessage = this.handshakeHandler.bind(this);
+        this.cmd_socket.onmessage = this.handshakeHandler.bind(this);
 
-        this.socket.onopen = function(event) {
+        this.cmd_socket.onopen = function (event) {
             console.log("Succesfully connected to remote server!");
             this.handshakeHandler(null);
         }.bind(this);
@@ -86,70 +88,122 @@ export default class RoverHandler {
         // }
 
 
-        this.socket.onclose = function(event) {
+        this.cmd_socket.onclose = function (event) {
             console.log("Connection to remote server closed!")
-        }
+        };
 
-        this.socket.onerror = function(event) {
+        this.cmd_socket.onerror = function (event) {
             console.log("Unexpected error while trying to connect! Sheer Heart Attack may have already exploded!");
         }
     }
 
 
     getSocket() {
-        return this.socket;
+        return this.cmd_socket;
     }
 
-    handshakeHandler(answer){
-        if(answer == null){
+    handshakeHandler(answer) {
+        if (answer == null) {
             let hello_msg = {
                 "client_id": this.id,
                 "cmd": "hello"
-            }
+            };
 
             this.lastCtrlMsg = hello_msg;
             this.sendCtrlMsg(hello_msg);
-        }else{
+        } else {
             let message = JSON.parse(answer.data);
 
-            switch(this.lastCtrlMsg.cmd){
-                case "hello":{
+            switch (this.lastCtrlMsg.cmd) {
+                case "hello": {
                     console.log(message);
 
                     let list_cmd = {
                         "client_id": this.id,
                         "cmd": "list"
-                    }
+                    };
 
                     this.lastCtrlMsg = list_cmd;
                     this.sendCtrlMsg(list_cmd);
                     break;
                 }
 
-                case "list":{
+                case "list": {
                     console.log(message);
                     this.rovers = message['rovers'];
+
+                    //TODO: let the user choose the rover to which to connect to
+                    this.currentRoverId = message['rovers'][0]['rover_id'];
 
                     let connect_cmd = {
                         "client_id": this.id,
                         "rover_id": message['rovers'][0]['rover_id'],
                         "cmd": "connect"
-                    }
-
+                    };
+                    
                     this.lastCtrlMsg = connect_cmd;
                     this.sendCtrlMsg(connect_cmd);
                     break;
                 }
 
-                case "connect":{
+                case "connect": {
                     console.log(message);
-                    this.socket.onmessage = this.handleAnswer.bind(this);
+                    this.cmd_socket.onmessage = this.handleAnswer.bind(this);
+
+                    // Connect to stream
+
+                    this.connectToStream();
+
                     break;
                 }
             }
 
         }
 
+    }
+
+    connectToStream() {
+        // Setup the WebSocket connection and start the player
+        this.stream_socket = new WebSocket(this.serverAddress+':'+this.streamingPort);
+        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
+
+        // this.stream_socket.onopen = function (event) {
+        //     console.log("Succesfully connected to stream server!");
+        //
+        //     let connect_cmd = {
+        //         "client_id": this.id,
+        //         "rover_id": this.currentRoverId,
+        //         "cmd": "connect"
+        //     };
+        //
+        //     this.sendStreamMsg(connect_cmd);
+        //
+        // }.bind(this);
+        //
+        // this.stream_socket.onmessage = this.streamHandshakeHandler.bind(this);
+
+
+    }
+
+    // The stream handshake handler only receives one message and then commits
+    // not alive. This makes it a very lucky handler.
+    streamHandshakeHandler(msg){
+
+        // Also his only role is to receive the message and log it. It doesn't even
+        // do anything useful with it. Gods what a stupid handler.
+        console.log(JSON.parse(msg.data));
+        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
+
+        let start_msg = {
+            "client_id": this.id,
+            "rover_id": this.currentRoverId,
+            "cmd": "start"
+        };
+
+        this.sendStreamMsg(start_msg);
+
+        // Vanilla Ice yourself out of existence
+        this.stream_socket.onmessage = null;
     }
 
     handleAnswer(answer) {
@@ -158,22 +212,19 @@ export default class RoverHandler {
 
         answer = JSON.parse(answer.data);
 
-        if(this.lastCtrlMsg) {
-            switch(this.lastCtrlMsg.cmd) {
+        if (this.lastCtrlMsg) {
+            switch (this.lastCtrlMsg.cmd) {
                 case "move":
 
-                    if(answer.msg == "ok")
+                    if (answer.msg === "ok")
                         console.log("SHA moved forward!");
 
-                    else if(answer.msg == "failed")
-                        console.log("SHA exploded")
+                    else if (answer.msg === "failed")
+                        console.log("SHA exploded");
 
                     break;
-
-
             }
-        }
-        else {
+        } else {
             console.log("Received an unexpected message:");
             console.log(answer);
         }
@@ -182,9 +233,17 @@ export default class RoverHandler {
     sendCtrlMsg(msg) {
 
         try {
-            this.getSocket().send(JSON.stringify(msg)+'\n');
+            this.getSocket().send(JSON.stringify(msg) + '\n');
+        } catch (e) {
+            console.log("\t-> Could not send message, still not connected!");
         }
-        catch(e) {
+    }
+
+    sendStreamMsg(msg) {
+
+        try {
+            this.stream_socket.send(JSON.stringify(msg) + '\n');
+        } catch (e) {
             console.log("\t-> Could not send message, still not connected!");
         }
     }
@@ -207,7 +266,7 @@ export default class RoverHandler {
         this.lastCtrlMsg = msg;
         this.sendCtrlMsg(msg);
 
-        console.log(this.getId()+": Sending move forward message");
+        console.log(this.getId() + ": Sending move forward message");
 
     }
 
@@ -239,14 +298,14 @@ export default class RoverHandler {
 
     right() {
 
-        console.log(this.getId()+": Sending move right message");
+        console.log(this.getId() + ": Sending move right message");
 
         var msg = {
             cmd: "move",
             params: {
                 direction: ["cw"]
             }
-        }
+        };
 
         this.lastCtrlMsg = msg;
 
@@ -255,14 +314,14 @@ export default class RoverHandler {
 
     left() {
 
-        console.log(this.getId()+": Sending move left message");
+        console.log(this.getId() + ": Sending move left message");
 
         var msg = {
             cmd: "move",
             params: {
                 direction: ["ccw"]
             }
-        }
+        };
 
         this.lastCtrlMsg = msg;
         this.sendCtrlMsg(msg);
@@ -270,14 +329,14 @@ export default class RoverHandler {
 
     backward() {
 
-        console.log(this.getId()+": Sending move backward message");
+        console.log(this.getId() + ": Sending move backward message");
 
         var msg = {
             cmd: "move",
             params: {
                 direction: ["back"]
             }
-        }
+        };
 
         this.lastCtrlMsg = msg;
 
@@ -287,14 +346,14 @@ export default class RoverHandler {
 
     cw() {
 
-        console.log(this.getId()+": Sending move cw message");
+        console.log(this.getId() + ": Sending move cw message");
 
         var msg = {
             cmd: "move",
             params: {
                 direction: ["forward", "right"]
             }
-        }
+        };
 
         this.lastCtrlMsg = msg;
 
@@ -304,26 +363,20 @@ export default class RoverHandler {
 
     ccw() {
 
-        console.log(this.getId()+": Sending move cw message");
+        console.log(this.getId() + ": Sending move cw message");
 
         var msg = {
             cmd: "move",
             params: {
                 direction: ["forward", "left"]
             }
-        }
+        };
 
         this.lastCtrlMsg = msg;
 
         this.sendCtrlMsg(msg);
     }
 
-
-
-
-    handleAnswer(message) {
-        console.log("Received message from server: "+message.data);
-    }
 
     cameraUp() {
 

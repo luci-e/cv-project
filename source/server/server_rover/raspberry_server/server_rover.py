@@ -63,7 +63,7 @@ class RoverData:
         self.camera_no = 0
 
 
-# The rover Hardware Abastraction Layer handles all requests that must be handled
+# The rover Hardware Abstraction Layer handles all requests that must be handled
 # by the hardware. Although not enforced, this is a singleton.
 class rover_HAL():
 
@@ -75,7 +75,7 @@ class rover_HAL():
         self.ser = serial.Serial(rover_shared_data.serial_port)
 
     def send_serial_command(self, command):
-        print('sending {command}')
+        print(f'sending {command}')
         self.ser.write(command)
 
     def is_blocked(self):
