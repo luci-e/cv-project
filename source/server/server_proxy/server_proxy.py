@@ -10,7 +10,6 @@ import websockets
 import threading
 
 from struct import Struct
-from pprint import pprint
 import cv2
 
 
@@ -25,7 +24,7 @@ class StreamData():
     def __init__(self):
         self.width = 640
         self.height = 480
-        self.framerate = 30
+        self.framerate = 30.0
         self.jsmpeg_magic = b'jsmp'
         self.jsmpeg_header = Struct('>4sHH')
 
@@ -81,7 +80,7 @@ class VideoCaptureTreading:
 
     def update(self):
         while self.started:
-            time.sleep(1.0 / 25.0)
+            time.sleep(1.0 / (stream_data.framerate / 1.2))
             grabbed, frame = self.cap.read()
 
             if self.read_next:
@@ -135,7 +134,7 @@ class RoverHandler:
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -threads 8 -f mpeg1video -'
+            -threads 8 -vb 5M -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
@@ -146,7 +145,7 @@ class RoverHandler:
             asyncio.create_task(self.start_streaming())
 
             while True:
-                await asyncio.sleep(1.0 / 25.0)
+                await asyncio.sleep(1.0 / stream_data.framerate)
                 grabbed, frame = self.cap.read()
                 if grabbed:
                     self.converter.stdin.write(frame.tostring())
@@ -159,17 +158,56 @@ class RoverHandler:
 
     async def start_streaming(self):
         print('Starting streaming')
+        closed_sockets = set()
+
         try:
             while True:
                 buf = await self.converter.stdout.read(32768)
                 if buf:
-                    for ws in self.stream_clients.values():
+                    for client_id, ws in self.stream_clients.items():
                         try:
                             await ws.send(buf)
                         except:
-                            print('Error sending data')
+                            print('Removing stream socket from rover')
+                            closed_sockets.add(client_id)
+
+                for client_id in closed_sockets:
+                    try:
+                        del self.stream_clients[client_id]
+                    except:
+                        pass
+
+                closed_sockets.clear()
         finally:
             self.converter.stdout.close()
+
+    async def start_cmd_forwarding(self):
+        print('Starting forwarding commands')
+        closed_sockets = set()
+
+        while True:
+            for client_id, ws in self.rover_clients.items():
+                if ws.closed:
+                    print('Removing ctrl socket from rover')
+                    closed_sockets.add(client_id)
+                    continue
+
+                try:
+                    async for message in ws:
+                        print(message)
+                        self.writer.write(message.encode())
+                except:
+                    print('Removing ctrl socket from rover')
+                    closed_sockets.add(client_id)
+
+            for client_id in closed_sockets:
+                try:
+                    del self.rover_clients[client_id]
+                except:
+                    pass
+
+            closed_sockets.clear()
+            await asyncio.sleep(1.0 / (stream_data.framerate / 1.2))
 
     def add_rover_client(self, client_id, websocket):
         print(f'Rover client {client_id} added to rover {self.rover_id}')
@@ -187,7 +225,6 @@ class ProxyServer(object):
     def __init__(self):
         self.id = uuid.uuid1()
         self.rover_handlers = dict()
-        self.last_connected_client = None
 
     async def greet_rover(self, reader, writer):
         print('Rover connected')
@@ -206,7 +243,8 @@ class ProxyServer(object):
 
         self.rover_handlers[hello_cmd['rover_id']].start_capture()
 
-        await self.rover_handlers[hello_cmd['rover_id']].start_conversion()
+        await asyncio.gather(self.rover_handlers[hello_cmd['rover_id']].start_cmd_forwarding(),
+                             self.rover_handlers[hello_cmd['rover_id']].start_conversion())
 
     async def greet_rover_client(self, websocket, path):
         print(f'Rover Client connected!')
@@ -234,12 +272,19 @@ class ProxyServer(object):
 
         self.rover_handlers[connect_cmd['rover_id']].add_rover_client(connect_cmd['client_id'], websocket)
 
-        self.last_connected_client = {'client_id': connect_cmd['client_id'], 'rover_id': connect_cmd['rover_id']}
-
         connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
                             'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
 
         await self.send_websocket_message(connect_response, websocket)
+
+        # while True:
+        #     await asyncio.sleep(10)
+        #     if connect_cmd['client_id'] not in self.rover_handlers[connect_cmd['rover_id']].rover_clients:
+        #         print('Rover client disconnected')
+        #         return
+
+        await websocket.wait_closed()
+        print('Rover client disconnected')
 
     async def do_list_command(self, websocket):
         rovers_list = list(
@@ -252,29 +297,35 @@ class ProxyServer(object):
     async def greet_stream_client(self, websocket, path):
         print(f'Stream Client connected!')
 
-        self.rover_handlers[self.last_connected_client['rover_id']].add_stream_client(
-            self.last_connected_client['client_id'], websocket)
+        # self.rover_handlers[self.last_connected_client['rover_id']].add_stream_client(
+        #     self.last_connected_client['client_id'], websocket)
+        #
+        # self.last_connected_client = None
 
-        self.last_connected_client = None
+        connect_msg = await websocket.recv()
+        connect_cmd = json.loads(connect_msg)
 
-        # connect_msg = await websocket.recv()
-        # connect_cmd = json.loads(connect_msg)
-        #
-        # connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
-        #                     'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
-        #
-        # await self.send_websocket_message(connect_response, websocket)
-        # start_msg = await websocket.recv()
-        #
-        # print(start_msg)
+        connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
+                            'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
+
+        await self.send_websocket_message(connect_response, websocket)
+        start_msg = await websocket.recv()
+
+        print(start_msg)
 
         await websocket.send(stream_data.jsmpeg_header.pack(stream_data.jsmpeg_magic, stream_data.width,
                                                             stream_data.height))
 
-        # self.rover_handlers[connect_cmd['rover_id']].add_stream_client(connect_cmd['client_id'], websocket)
+        self.rover_handlers[connect_cmd['rover_id']].add_stream_client(connect_cmd['client_id'], websocket)
 
-        while True:
-            await asyncio.sleep(100)
+        # while True:
+        #     await asyncio.sleep(10)
+        #     if connect_cmd['client_id'] not in self.rover_handlers[connect_cmd['rover_id']].stream_clients:
+        #         print('Stream client disconnected')
+        #         return
+
+        await websocket.wait_closed()
+        print('Stream client disconnected')
 
     async def serve_rovers(self):
         print('Starting internal rover server')

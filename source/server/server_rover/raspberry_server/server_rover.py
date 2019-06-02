@@ -28,6 +28,8 @@ class CAM_DIRECTION(Flag):
     STOP = 0
     UP = 1
     DOWN = 2
+    CW = 4
+    CCW = 8
 
 
 # The enum of the possible motors on the rover
@@ -418,7 +420,7 @@ class BroadcastOutput(object):
 -f v4l2 -input_format yuyv422 -s 640x480 -r 30 -i /dev/video0 \
 -vcodec mpeg2video \
 -map 0:0 -threads 8 -an \
--muxdelay 0.001 -b:v 10M -maxrate 10M \
+-muxdelay 0.001 -vb 5M -maxrate 10M \
 -sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 

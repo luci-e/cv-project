@@ -2,10 +2,9 @@
 
 import * as RL from './RoverLibs.js';
 
-var SERVER_ADDRESS = 'ws://127.0.0.1';
-var COMMAND_PORT = 8888;
-var STREAMING_PORT = 8889;
-
+const SERVER_ADDRESS = 'ws://127.0.0.1';
+const COMMAND_PORT = 8888;
+const STREAMING_PORT = 8889;
 
 
 var keys = new RL.CommandHandler("commands-container");

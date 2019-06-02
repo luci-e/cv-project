@@ -40,7 +40,7 @@ export default class CommandHandler {
         this.rover = null;
 
         this.pressed = new Array(256);
-        for (var i = 0; i < 256; i++)
+        for (let i = 0; i < 256; i++)
             this.pressed[i] = false;
 
     };

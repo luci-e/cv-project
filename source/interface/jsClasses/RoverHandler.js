@@ -83,12 +83,8 @@ export default class RoverHandler {
             this.handshakeHandler(null);
         }.bind(this);
 
-        // this.socket.onmessage = function (answer) {
-        //     that.handleAnswer(answer);
-        // }
-
-
         this.cmd_socket.onclose = function (event) {
+            console.log(event)
             console.log("Connection to remote server closed!")
         };
 
@@ -165,22 +161,22 @@ export default class RoverHandler {
     connectToStream() {
         // Setup the WebSocket connection and start the player
         this.stream_socket = new WebSocket(this.serverAddress+':'+this.streamingPort);
-        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
+        //this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
 
-        // this.stream_socket.onopen = function (event) {
-        //     console.log("Succesfully connected to stream server!");
-        //
-        //     let connect_cmd = {
-        //         "client_id": this.id,
-        //         "rover_id": this.currentRoverId,
-        //         "cmd": "connect"
-        //     };
-        //
-        //     this.sendStreamMsg(connect_cmd);
-        //
-        // }.bind(this);
-        //
-        // this.stream_socket.onmessage = this.streamHandshakeHandler.bind(this);
+        this.stream_socket.onopen = function (event) {
+            console.log("Succesfully connected to stream server!");
+
+            let connect_cmd = {
+                "client_id": this.id,
+                "rover_id": this.currentRoverId,
+                "cmd": "connect"
+            };
+
+            this.sendStreamMsg(connect_cmd);
+
+        }.bind(this);
+
+        this.stream_socket.onmessage = this.streamHandshakeHandler.bind(this);
 
 
     }
@@ -192,7 +188,6 @@ export default class RoverHandler {
         // Also his only role is to receive the message and log it. It doesn't even
         // do anything useful with it. Gods what a stupid handler.
         console.log(JSON.parse(msg.data));
-        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
 
         let start_msg = {
             "client_id": this.id,
@@ -202,8 +197,10 @@ export default class RoverHandler {
 
         this.sendStreamMsg(start_msg);
 
-        // Vanilla Ice yourself out of existence
-        this.stream_socket.onmessage = null;
+        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
+
+        // Call the onopen as if nothing happened
+        this.player.initSocketClient.bind(this.player)(null);
     }
 
     handleAnswer(answer) {
@@ -233,7 +230,7 @@ export default class RoverHandler {
     sendCtrlMsg(msg) {
 
         try {
-            this.getSocket().send(JSON.stringify(msg) + '\n');
+            this.cmd_socket.send(JSON.stringify(msg) + '\n');
         } catch (e) {
             console.log("\t-> Could not send message, still not connected!");
         }
@@ -449,7 +446,7 @@ export default class RoverHandler {
 
 
         console.log(this.getSocket());
-        this.getSocket().send(JSON.stringify(msg));
+        this.cmd_socket.send(JSON.stringify(msg));
 
         console.log("Test Message sent to server!");
     }
