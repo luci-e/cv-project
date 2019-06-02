@@ -5,10 +5,7 @@ import serial
 import cv2
 import atexit
 import uuid
-
-from struct import Struct
-from threading import Thread
-from time import sleep, time
+import numpy as np
 from enum import Flag
 
 
@@ -67,7 +64,7 @@ class RoverData:
 
 # The rover Hardware Abstraction Layer handles all requests that must be handled
 # by the hardware. Although not enforced, this is a singleton.
-class rover_HAL():
+class rover_HAL:
 
     def __init__(self):
         self.ser = None
@@ -86,17 +83,17 @@ class rover_HAL():
     def move(self, direction):
         serial_command = 'move '
 
-        if (direction & ROVER_DIRECTION.FORWARD):
+        if direction & ROVER_DIRECTION.FORWARD:
             serial_command += 'w'
-        if (direction & ROVER_DIRECTION.BACK):
+        if direction & ROVER_DIRECTION.BACK:
             serial_command += 's'
-        if (direction & ROVER_DIRECTION.LEFT):
+        if direction & ROVER_DIRECTION.LEFT:
             serial_command += 'a'
-        if (direction & ROVER_DIRECTION.RIGHT):
+        if direction & ROVER_DIRECTION.RIGHT:
             serial_command += 'd'
-        if (direction & ROVER_DIRECTION.CW):
+        if direction & ROVER_DIRECTION.CW:
             serial_command += 'e'
-        if (direction & ROVER_DIRECTION.CCW):
+        if direction & ROVER_DIRECTION.CCW:
             serial_command += 'q'
 
         serial_command += '\n'
@@ -108,10 +105,14 @@ class rover_HAL():
     def move_cam(self, direction):
         serial_command = 'move_cam '
 
-        if (direction & CAM_DIRECTION.UP):
+        if direction & CAM_DIRECTION.UP:
             serial_command += 'r'
-        if (direction & CAM_DIRECTION.DOWN):
+        if direction & CAM_DIRECTION.DOWN:
             serial_command += 'f'
+        if direction & CAM_DIRECTION.CW:
+            serial_command += 'y'
+        if direction & CAM_DIRECTION.CCW:
+            serial_command += 't'
 
         serial_command += '\n'
 
@@ -122,9 +123,9 @@ class rover_HAL():
 
         serial_command = 'move_stop '
 
-        if (motors & ROVER_MOTORS.WHEELS):
+        if motors & ROVER_MOTORS.WHEELS:
             serial_command += 'w'
-        if (motors & ROVER_MOTORS.CAMERA):
+        if motors & ROVER_MOTORS.CAMERA:
             serial_command += 'c'
 
         serial_command += '\n'
@@ -136,10 +137,18 @@ class rover_HAL():
 
         serial_command = 'laser_ctrl '
 
-        if (action & LASER_ACTION.ON):
+        if action & LASER_ACTION.ON:
             serial_command += 'i'
-        if (action & LASER_ACTION.OFF):
+        if action & LASER_ACTION.OFF:
             serial_command += 'o'
+
+        serial_command += '\n'
+
+        self.send_serial_command(bytes(serial_command, 'ascii'))
+        return ROVER_STATUS.OK
+
+    def set_speed(self, speed):
+        serial_command = f'speed {speed}'
 
         serial_command += '\n'
 
@@ -158,6 +167,45 @@ class RoverRequestHandler:
         self.reader = None
         self.writer = None
         self.id = uuid.uuid1()
+
+        # Define the set of sets of allowed directions and combinations
+        self.allowed_directions = {frozenset(['forward']): ROVER_DIRECTION.FORWARD,
+                                   frozenset(['back']): ROVER_DIRECTION.BACK,
+                                   frozenset(['left']): ROVER_DIRECTION.LEFT,
+                                   frozenset(['right']): ROVER_DIRECTION.RIGHT,
+                                   frozenset(['forward', 'left']): ROVER_DIRECTION.FORWARD | ROVER_DIRECTION.LEFT,
+                                   frozenset(['forward', 'right']): ROVER_DIRECTION.FORWARD | ROVER_DIRECTION.RIGHT,
+                                   frozenset(['back', 'left']): ROVER_DIRECTION.BACK | ROVER_DIRECTION.LEFT,
+                                   frozenset(['back', 'right']): ROVER_DIRECTION.BACK | ROVER_DIRECTION.RIGHT,
+                                   frozenset(['cw']): ROVER_DIRECTION.CW,
+                                   frozenset(['ccw']): ROVER_DIRECTION.CCW}
+
+        # Define the set of sets of allowed directions and combinations
+        self.allowed_cam_directions = {frozenset(['up']): CAM_DIRECTION.UP,
+                                       frozenset(['down']): CAM_DIRECTION.DOWN,
+                                       frozenset(['up', 'cw']): CAM_DIRECTION.UP | CAM_DIRECTION.CW,
+                                       frozenset(['up', 'ccw']): CAM_DIRECTION.UP | CAM_DIRECTION.CCW,
+                                       frozenset(['down', 'cw']): CAM_DIRECTION.DOWN | CAM_DIRECTION.CW,
+                                       frozenset(['down', 'ccw']): CAM_DIRECTION.DOWN | CAM_DIRECTION.CCW,
+                                       frozenset(['cw']): CAM_DIRECTION.CW,
+                                       frozenset(['ccw']): CAM_DIRECTION.CCW}
+
+        # Define the set of sets of allowed motors and combinations
+        self.allowed_motors = {frozenset(['wheels']): ROVER_MOTORS.WHEELS,
+                               frozenset(['camera']): ROVER_MOTORS.CAMERA,
+                               frozenset(['camera', 'wheels']): ROVER_MOTORS.WHEELS | ROVER_MOTORS.CAMERA}
+
+        # Define the set of sets of allowed commands and their response functions
+        self.allowed_commands = {'move': self.cmd_move,
+                                 'set_speed': self.cmd_set_speed,
+                                 'move_cam': self.cmd_move_camera,
+                                 'move_stop': self.cmd_move_stop,
+                                 'track': self.cmd_track_person,
+                                 'untrack': self.cmd_untrack_person,
+                                 'attack': self.cmd_attack_person,
+                                 'stop_attack': self.cmd_stop_attack_person,
+                                 'laser_ctrl': self.cmd_laser_ctrl,
+                                 'list_faces': self.cmd_list_faces}
 
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(rover_shared_data.server_address,
@@ -178,40 +226,24 @@ class RoverRequestHandler:
         try:
             while True:
                 line = await self.reader.readline()
-
                 line = line.decode()
                 if line:
-                    print('{line}')
+                    print(f'{line}')
                     await self.process(line)
 
         except Exception as e:
-            print(type(e))  # the exception instance
-            print(e.args)  # arguments stored in .args
-            print(e)
+            print('Error processing command')
+            # print(type(e))  # the exception instance
+            # print(e.args)  # arguments stored in .args
+            # print(e)
 
     async def process(self, message):
         try:
             msg = json.loads(message)
             cmd = msg['cmd']
 
-            if (cmd == 'move'):
-                await self.cmd_move(msg)
-            elif (cmd == 'move_cam'):
-                await self.cmd_move_camera(msg)
-            elif (cmd == 'move_stop'):
-                await self.cmd_move_stop(msg)
-            elif (cmd == 'track'):
-                await self.cmd_track_person(msg)
-            elif (cmd == 'untrack'):
-                await self.cmd_untrack_person(msg)
-            elif (cmd == 'attack'):
-                await self.cmd_attack_person(msg)
-            elif (cmd == 'stop_attack'):
-                await self.cmd_stop_attack_person(msg)
-            elif (cmd == 'laser_ctrl'):
-                await self.cmd_laser_ctrl(msg)
-            elif (cmd == 'list_faces'):
-                await self.cmd_list_faces(msg)
+            if cmd in self.allowed_commands.keys():
+                await self.allowed_commands[cmd](msg)
             else:
                 await self.error_response("unknown_cmd")
         except Exception as e:
@@ -223,7 +255,7 @@ class RoverRequestHandler:
     # Send the message, given as dictionary, to the socket, encoded as json
     async def send_message(self, message):
         try:
-            encoded_msg = json.dumps(message)+'\n'
+            encoded_msg = json.dumps(message) + '\n'
             await self.writer.write(encoded_msg.encode())
         except Exception as e:
             print(type(e))  # the exception instance
@@ -248,56 +280,44 @@ class RoverRequestHandler:
 
         print('Processing move command')
 
-        # Define the set of sets of allowed directions and combinations
-        allowed_directions = {frozenset(['forward']),
-                              frozenset(['back']),
-                              frozenset(['left']),
-                              frozenset(['right']),
-                              frozenset(['forward', 'left']),
-                              frozenset(['forward', 'right']),
-                              frozenset(['back', 'left']),
-                              frozenset(['back', 'right']),
-                              frozenset(['cw']),
-                              frozenset(['ccw'])}
-
         try:
             params = message['params']
 
             direction = frozenset(params['direction'])
 
-            if (direction in allowed_directions):
+            if direction in self.allowed_directions.keys():
 
-                rover_dir = None
-
-                if (direction == frozenset(['forward'])):
-                    rover_dir = ROVER_DIRECTION.FORWARD
-                elif (direction == frozenset(['back'])):
-                    rover_dir = ROVER_DIRECTION.BACK
-                elif (direction == frozenset(['left'])):
-                    rover_dir = ROVER_DIRECTION.LEFT
-                elif (direction == frozenset(['right'])):
-                    rover_dir = ROVER_DIRECTION.RIGHT
-                elif (direction == frozenset(['cw'])):
-                    rover_dir = ROVER_DIRECTION.CW
-                elif (direction == frozenset(['ccw'])):
-                    rover_dir = ROVER_DIRECTION.CCW
-                elif (direction == frozenset(['forward', 'left'])):
-                    rover_dir = ROVER_DIRECTION.FORWARD | ROVER_DIRECTION.LEFT
-                elif (direction == frozenset(['forward', 'right'])):
-                    rover_dir = ROVER_DIRECTION.FORWARD | ROVER_DIRECTION.RIGHT
-                elif (direction == frozenset(['back', 'left'])):
-                    rover_dir = ROVER_DIRECTION.BACK | ROVER_DIRECTION.LEFT
-                elif (direction == frozenset(['back', 'right'])):
-                    rover_dir = ROVER_DIRECTION.BACK | ROVER_DIRECTION.RIGHT
+                rover_dir = self.allowed_directions[direction]
 
                 r = rover_hal.move(rover_dir)
-                if (r == ROVER_STATUS.OK):
+                if r == ROVER_STATUS.OK:
                     await self.success_response()
                 else:
                     await self.error_response("blocked")
 
             else:
                 await self.error_response("bad_direction")
+
+        except Exception as e:
+            print(type(e))  # the exception instance
+            print(e.args)  # arguments stored in .args
+            print(e)
+            await self.error_response("bad_params")
+
+    async def cmd_set_speed(self, message):
+        print('Processing speed command')
+
+        try:
+            params = message['params']
+
+            speed = np.clip(float(params['speed']), 0.0, 1.0)
+
+            r = rover_hal.set_speed(speed)
+            if r == ROVER_STATUS.OK:
+                await self.success_response()
+            else:
+                await self.error_response("blocked")
+
 
         except Exception as e:
             print(type(e))  # the exception instance
@@ -313,24 +333,22 @@ class RoverRequestHandler:
 
         try:
             params = message['params']
+            direction = frozenset(params['direction'])
 
-            direction = params['direction']
-            cam_dir = None
+            if direction in self.allowed_cam_directions.keys():
+                cam_dir = self.allowed_cam_directions[direction]
 
-            if (direction == 'up'):
-                cam_dir = CAM_DIRECTION.UP
-            elif (direction == 'down'):
-                cam_dir = CAM_DIRECTION.DOWN
+                r = rover_hal.move_cam(cam_dir)
+                if r == ROVER_STATUS.OK:
+                    await self.success_response()
+                elif r == ROVER_STATUS.CAM_TOP_LIMIT:
+                    await self.error_response("top_limit")
+                elif r == ROVER_STATUS.CAM_BOTTOM_LIMIT:
+                    await self.error_response("bottom_limit")
+
             else:
                 await self.error_response("bad_direction")
 
-            r = rover_hal.move_cam(cam_dir)
-            if (r == ROVER_STATUS.OK):
-                await self.success_response()
-            elif (r == ROVER_STATUS.CAM_TOP_LIMIT):
-                await self.error_response("top_limit")
-            elif (r == ROVER_STATUS.CAM_BOTTOM_LIMIT):
-                await self.error_response("bottom_limit")
         except:
             await self.error_response("bad_params")
 
@@ -339,28 +357,18 @@ class RoverRequestHandler:
 
         print('Processing move stop command')
 
-        # Define the set of sets of allowed motors and combinations
-        allowed_motors = {frozenset(['wheels']), frozenset(['camera']), frozenset(['camera', 'wheels'])}
-
         try:
             params = message['params']
 
             motors = frozenset(params['motors'])
 
-            if (motors in allowed_motors):
+            if motors in self.allowed_motors.keys():
 
-                stopped_motors = None
-
-                if (motors == frozenset(['wheels'])):
-                    stopped_motors = ROVER_MOTORS.WHEELS
-                elif (motors == frozenset(['camera'])):
-                    stopped_motors = ROVER_MOTORS.CAMERA
-                elif (motors == frozenset(['wheels', 'camera'])):
-                    stopped_motors = ROVER_MOTORS.WHEELS | ROVER_MOTORS.CAMERA
+                stopped_motors = self.allowed_motors[motors]
 
                 r = rover_hal.stop_motors(stopped_motors)
 
-                if (r == ROVER_STATUS.OK):
+                if r == ROVER_STATUS.OK:
                     await self.success_response()
             else:
                 await self.error_response("bad_motors")
@@ -390,17 +398,17 @@ class RoverRequestHandler:
             action = params['action']
             laser_action = None
 
-            if (action == 'on'):
+            if action == 'on':
                 laser_action = LASER_ACTION.ON
-            elif (action == 'off'):
+            elif action == 'off':
                 laser_action = LASER_ACTION.OFF
-            elif (action == 'blink'):
+            elif action == 'blink':
                 laser_action = LASER_ACTION.BLINK
             else:
                 await self.error_response("bad_action")
 
             r = rover_hal.laser_ctrl(laser_action)
-            if (r == ROVER_STATUS.OK):
+            if r == ROVER_STATUS.OK:
                 await self.success_response()
 
         except Exception as e:
@@ -440,7 +448,7 @@ class BroadcastOutput(object):
         self.converter.stdin.write(b)
 
 
-class USBCamera():
+class USBCamera:
     def __init__(self, camera_no):
         self.cam_no = camera_no
         self.cap = cv2.VideoCapture(self.cam_no)
@@ -470,7 +478,7 @@ async def main():
     rover_shared_data.camera_no = args.camera_no
     rover_shared_data.server_address = args.server_address
 
-    # rover_hal.open_serial()
+    rover_hal.open_serial()
 
     # logger = logging.getLogger('websockets')
     # logger.setLevel(logging.DEBUG)

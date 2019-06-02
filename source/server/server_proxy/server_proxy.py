@@ -194,8 +194,11 @@ class RoverHandler:
 
                 try:
                     async for message in ws:
-                        print(message)
+                        print(repr(message))
                         self.writer.write(message.encode())
+                        await self.writer.drain()
+                        await send_websocket_message({'msg': 'ok'}, ws)
+
                 except:
                     print('Removing ctrl socket from rover')
                     closed_sockets.add(client_id)
@@ -232,6 +235,8 @@ class ProxyServer(object):
         hello_msg = await reader.readline()
         hello_cmd = json.loads(hello_msg.decode())
 
+        print(hello_msg)
+
         self.rover_handlers[hello_cmd['rover_id']] = RoverHandler(hello_cmd, shared_cv_helper, reader, writer)
 
         stream_set_msg = await reader.readline()
@@ -256,7 +261,7 @@ class ProxyServer(object):
 
         hello_response = {'server_id': str(self.id), 'msg': 'ack'}
 
-        await self.send_websocket_message(hello_response, websocket)
+        await send_websocket_message(hello_response, websocket)
 
         list_msg = await websocket.recv()
         # list_cmd = json.loads(list_msg.decode())
@@ -275,7 +280,7 @@ class ProxyServer(object):
         connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
                             'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
 
-        await self.send_websocket_message(connect_response, websocket)
+        await send_websocket_message(connect_response, websocket)
 
         # while True:
         #     await asyncio.sleep(10)
@@ -292,7 +297,7 @@ class ProxyServer(object):
 
         list_response = {'server_id': str(self.id), 'rovers': rovers_list}
 
-        await self.send_websocket_message(list_response, websocket)
+        await send_websocket_message(list_response, websocket)
 
     async def greet_stream_client(self, websocket, path):
         print(f'Stream Client connected!')
@@ -308,7 +313,7 @@ class ProxyServer(object):
         connect_response = {'server_id': str(self.id), 'client_id': connect_cmd['client_id'],
                             'rover_id': connect_cmd['rover_id'], 'msg': 'ok'}
 
-        await self.send_websocket_message(connect_response, websocket)
+        await send_websocket_message(connect_response, websocket)
         start_msg = await websocket.recv()
 
         print(start_msg)
@@ -344,28 +349,28 @@ class ProxyServer(object):
         conn = websockets.serve(self.greet_stream_client, '0.0.0.0', server_data.stream_port)
         return conn
 
-    # Send the message, given as dictionary, to the socket, encoded as json
-    @staticmethod
-    async def send_socket_message(message, writer):
-        try:
-            encoded_msg = json.dumps(message) + '\n'
-            await writer.write(encoded_msg.encode())
-        except Exception as e:
-            print(e)
-
-    # Send the message, given as dictionary, to the socket, encoded as json
-    @staticmethod
-    async def send_websocket_message(message, websocket):
-        try:
-            encoded_msg = json.dumps(message) + '\n'
-            await websocket.send(encoded_msg)
-        except Exception as e:
-            print(e)
-
     async def start_all(self):
         await asyncio.gather(await self.serve_rovers(),
                              await self.server_rover_clients(),
                              await self.serve_stream_clients())
+
+
+# Send the message, given as dictionary, to the socket, encoded as json
+async def send_socket_message(message, writer):
+    try:
+        encoded_msg = json.dumps(message) + '\n'
+        await writer.write(encoded_msg.encode())
+    except Exception as e:
+        print(e)
+
+
+# Send the message, given as dictionary, to the socket, encoded as json
+async def send_websocket_message(message, websocket):
+    try:
+        encoded_msg = json.dumps(message) + '\n'
+        await websocket.send(encoded_msg)
+    except Exception as e:
+        print(e)
 
 
 async def main():
