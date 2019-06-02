@@ -37,6 +37,9 @@ export default class CommandHandler {
         this.cameraUp = document.querySelector("#" + keyDiv + " #cameraUp");
         this.cameraDown = document.querySelector("#" + keyDiv + " #cameraDown");
 
+        this.speedSlider = document.getElementById("speedSlider");
+        this.speedTic = document.getElementById("speedTic")
+
         this.rover = null;
 
         this.pressed = new Array(256);
@@ -147,6 +150,13 @@ export default class CommandHandler {
         });
 
 
+
+        this.speedSlider.onmousedown = function(e) {
+            if(e.path[0].id != "speedTic")
+                that.moveSlider(e.offsetX);
+        };
+
+
         document.body.onkeydown = function (e) {
             that.handleKeyPress(e);
         };
@@ -156,6 +166,8 @@ export default class CommandHandler {
             that.handleKeyRelease(e);
             that.updateKeyDisplay();
         }
+
+
 
         //document.body.onmouseout = function() {
         //	console.log("HELLO THERE");
@@ -257,6 +269,19 @@ export default class CommandHandler {
             return action();
         };
 
+    }
+
+
+    moveSlider(offset) {
+
+
+        //ugly stuff to get the right offset with the bars
+        offset-=7;
+        offset = Math.min(Math.max(offset, 30), 298);
+        var value = (offset-30)/(298-30);
+
+        this.rover.setSpeed(value);
+        this.speedTic.style.left=offset+"px";
     }
 
 }
