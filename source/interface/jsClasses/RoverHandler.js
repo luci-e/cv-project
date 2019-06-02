@@ -22,6 +22,7 @@ export default class RoverHandler {
         this.commandHandler = bindings;
         // Show loading notice
         this.canvas = document.getElementById('videoOutput');
+        this.ctx = this.canvas.getContext("2d");
 
         this.getCommandHandler().bind(this);
 
@@ -246,6 +247,12 @@ export default class RoverHandler {
     }
 
 
+
+    setSpeed(value) {
+    	console.log("Request to set the speed to: "+value);
+    }
+
+
     repeatAction(action, timeForAction) {
 
         action(this);
@@ -450,4 +457,29 @@ export default class RoverHandler {
 
         console.log("Test Message sent to server!");
     }
+
+	drawFaces(faces) {
+
+		var size = faces.length;
+		for(var i=0; i<size; i++) {
+			var f = faces[i];
+			this.drawRect(f.x, f.y, f.width, f.height);
+		}
+
+	}
+
+
+	drawRect(x, y, width, height) {
+
+
+		//CONFIG FOR LINE STYLE
+		this.ctx.strokeStyle = 'rgba(48,219,225,0.7)';
+		this.ctx.lineWidth=10;
+
+
+		this.ctx.rect(x, y, width, height);
+		this.ctx.stroke();
+
+	}
+
 }

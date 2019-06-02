@@ -150,9 +150,28 @@ body {
 .tab-element {
 
 	display: flex;
-
 	flex-basis:200px;
 
 	
 
+}
+
+
+#speedSlider {
+	width: 340px;
+	height: 90px;
+	position:absolute;
+	top:30px;
+	right:30px;
+	background:url("img/speedBar.png");
+}
+
+#speedTic{
+	position:absolute;
+	width:15px;
+	height:55px;
+	top:50%;
+	margin-top:-27px;
+	left:100px;
+	background:url("img/speedTic.png");
 }

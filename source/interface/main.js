@@ -11,6 +11,7 @@ var keys = new RL.CommandHandler("commands-container");
 var rover = new RL.RoverHandler("SHA", keys, SERVER_ADDRESS, COMMAND_PORT, STREAMING_PORT);
 //var rover = new RL.RoverHandler("SHA2", keys, SOCKET_ADDR);
 
+rover.drawRect(100, 100, 100, 100);
 rover.connectToServer();
 
 //
