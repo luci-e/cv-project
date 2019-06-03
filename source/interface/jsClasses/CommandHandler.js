@@ -36,6 +36,10 @@ export default class CommandHandler {
 
         this.cameraUp = document.querySelector("#" + keyDiv + " #cameraUp");
         this.cameraDown = document.querySelector("#" + keyDiv + " #cameraDown");
+        this.cameraLeft = document.querySelector("#" + keyDiv + " #cameraLeft");
+        this.cameraRight = document.querySelector("#" + keyDiv + " #cameraRight");
+        this.cameraCenter = document.querySelector("#" + keyDiv + " #cameraCenter");
+
 
         this.speedSlider = document.getElementById("speedSlider");
         this.speedTic = document.getElementById("speedTic")
@@ -107,7 +111,7 @@ export default class CommandHandler {
         //CWISE
         this.bindStartFunction(this.cw, function () {
             that.setButtonDisplay(CW_ID);
-            return rover.cw();
+            return rover.forwardRight();
         });
 
         this.bindEndFunction(this.cw, function () {
@@ -118,7 +122,7 @@ export default class CommandHandler {
         //CCWISE
         this.bindStartFunction(this.ccw, function () {
             that.setButtonDisplay(CCW_ID);
-            return rover.ccw();
+            return rover.forwardLeft();
         });
 
         this.bindEndFunction(this.ccw, function () {
@@ -128,27 +132,56 @@ export default class CommandHandler {
 
         //CAMERA UP
         this.bindStartFunction(this.cameraUp, function () {
-            that.setCameraButtonDisplay(CUP_ID);
+            that.setCameraButtonDisplay(UP_ID);
             return rover.cameraUp();
         });
 
         this.bindEndFunction(this.cameraUp, function () {
-            that.setCameraButtonDisplay(CIDLE_ID);
+            that.setCameraButtonDisplay(IDLE_ID);
             return rover.stopCamera();
         });
 
 
         //CAMERA DOWN
         this.bindStartFunction(this.cameraDown, function () {
-            that.setCameraButtonDisplay(CDOWN_ID);
+            that.setCameraButtonDisplay(DOWN_ID);
             return rover.cameraDown();
         });
 
         this.bindEndFunction(this.cameraDown, function () {
-            that.setCameraButtonDisplay(CIDLE_ID);
+            that.setCameraButtonDisplay(IDLE_ID);
             return rover.stopCamera();
         });
 
+
+        //CAMERA LEFT
+        this.bindStartFunction(this.cameraLeft, function () {
+            that.setCameraButtonDisplay(LEFT_ID);
+            return rover.cameraLeft();
+        });
+
+        this.bindEndFunction(this.cameraLeft, function () {
+            that.setCameraButtonDisplay(IDLE_ID);
+            return rover.stopCamera();
+        });
+
+        //CAMERA RIGHT
+        this.bindStartFunction(this.cameraRight, function () {
+            that.setCameraButtonDisplay(RIGHT_ID);
+            return rover.cameraRight();
+        });
+
+        this.bindEndFunction(this.cameraRight, function () {
+            that.setCameraButtonDisplay(IDLE_ID);
+            return rover.stopCamera();
+        });
+
+
+        //CAMERA RESET
+        this.bindStartFunction(this.cameraCenter, function () {
+            that.setCameraButtonDisplay(IDLE_ID);
+            return rover.cameraReset();
+        });
 
 
         this.speedSlider.onmousedown = function(e) {

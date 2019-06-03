@@ -93,6 +93,7 @@ body {
 }
 
 .buttonKey {
+	
 	position:absolute;
 	width:60px;
 	height:60px;
@@ -122,14 +123,11 @@ body {
 #cameraControls {
 	align-items: center;
 	flex-basis:241px;
-	min-width: 241px;
-
+	min-width:241px;
 	flex:0;
-	
 	width:241px;
 	height:241px;
-	background: url("img/camerakeys.png") 0px 0px;
-
+	background: url("img/arrowkeys.png") 0px 0px;
 	position: relative;
 }
 
