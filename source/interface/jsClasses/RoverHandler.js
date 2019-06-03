@@ -249,7 +249,20 @@ export default class RoverHandler {
 
 
     setSpeed(value) {
+
+    	value = value.toFixed(3);
+
     	console.log("Request to set the speed to: "+value);
+
+        var msg = {
+            cmd: "set_speed",
+            params: {
+            	speed: value
+            }
+        };
+
+        this.sendCtrlMsg(msg);
+
     }
 
 
@@ -348,7 +361,7 @@ export default class RoverHandler {
     }
 
 
-    cw() {
+    forwardRight() {
 
         console.log(this.getId() + ": Sending move cw message");
 
@@ -365,7 +378,7 @@ export default class RoverHandler {
     }
 
 
-    ccw() {
+    forwardLeft() {
 
         console.log(this.getId() + ": Sending move cw message");
 
@@ -413,6 +426,52 @@ export default class RoverHandler {
         this.sendCtrlMsg(msg);
     }
 
+
+    cameraLeft() {
+
+        console.log("HELLO THERE");
+
+        var msg = {
+            cmd: "move_cam",
+            params: {
+                direction: ["cw"]
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+    cameraRight() {
+
+        console.log("HELLO THERE");
+
+        var msg = {
+            cmd: "move_cam",
+            params: {
+                direction: ["ccw"]
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+
+    cameraReset() {
+
+    	var msg = {
+            cmd: "set_cam",
+            params: {
+                angles: [0, 0]
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+
+    }
+
     laserOn() {
 
         console.log("HELLO THERE");
@@ -447,8 +506,10 @@ export default class RoverHandler {
 
     sendTestMessage() {
         var msg = {
-            text: "KOCCHI WO MIRO!",
-            cmd: "ciccia"
+            cmd: "set_speed",
+            params: {
+            	speed: 0.8
+            }
         };
 
 
