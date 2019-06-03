@@ -3,12 +3,6 @@
 #ifndef _TYPES_h
 #define _TYPES_h
 
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "arduino.h"
-#else
-	#include "WProgram.h"
-#endif
-
 // The enum of the possible directions the rover can move
 enum class ROVER_DIRECTION {
 	STOP,
@@ -64,4 +58,3 @@ enum class ROVER_STATUS {
 };
 
 #endif
-

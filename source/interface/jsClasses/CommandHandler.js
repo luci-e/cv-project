@@ -129,12 +129,12 @@ export default class CommandHandler {
         //CAMERA UP
         this.bindStartFunction(this.cameraUp, function () {
             that.setCameraButtonDisplay(CUP_ID);
-            return rover.laserOn();
+            return rover.cameraUp();
         });
 
         this.bindEndFunction(this.cameraUp, function () {
             that.setCameraButtonDisplay(CIDLE_ID);
-            return rover.laserOff();
+            return rover.stopCamera();
         });
 
 

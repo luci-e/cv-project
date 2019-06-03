@@ -212,7 +212,7 @@ class rover_HAL {
 		float xAngle_upper_limit = 90.0, xAngle_lower_limit = -90.0;
 		float zAngle_upper_limit = 90.0, zAngle_lower_limit = -90.0;
 
-		float angular_velocity = 5;
+		float angular_velocity = 20;
 
 		camera_controller() {};
 
@@ -263,11 +263,11 @@ class rover_HAL {
 				Serial.println(delta_angle);
 
 				if ((this->current_camera_direction & CAM_DIRECTION::UP) != CAM_DIRECTION::STOP) {
-					this->xAngle += delta_angle;
+					this->xAngle -= delta_angle;
 					Serial.println("Moving up");
 				}
 				else if ((this->current_camera_direction & CAM_DIRECTION::DOWN) != CAM_DIRECTION::STOP) {
-					this->xAngle -= delta_angle;
+					this->xAngle += delta_angle;
 					Serial.println("Moving down");
 				}
 

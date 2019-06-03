@@ -389,7 +389,7 @@ export default class RoverHandler {
         var msg = {
             cmd: "move_cam",
             params: {
-                direction: "up"
+                direction: ["up"]
             }
         };
 
@@ -405,7 +405,7 @@ export default class RoverHandler {
         var msg = {
             cmd: "move_cam",
             params: {
-                direction: "down"
+                direction: ["down"]
             }
         };
 
