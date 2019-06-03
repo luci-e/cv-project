@@ -12,6 +12,7 @@ import threading
 from struct import Struct
 import cv2
 
+STREAM_BLOCKSIZE = 512
 
 class ServerData():
     def __init__(self):
@@ -134,7 +135,7 @@ class RoverHandler:
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -threads 8 -vb 5M -f mpeg1video -'
+            -threads 8 -qscale 3 -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
@@ -162,7 +163,7 @@ class RoverHandler:
 
         try:
             while True:
-                buf = await self.converter.stdout.read(32768)
+                buf = await self.converter.stdout.readexactly(STREAM_BLOCKSIZE)
                 if buf:
                     for client_id, ws in self.stream_clients.items():
                         try:

@@ -119,6 +119,14 @@ class rover_HAL:
         self.send_serial_command(bytes(serial_command, 'ascii'))
         return ROVER_STATUS.OK
 
+    def set_cam(self, angles):
+        serial_command = f'set_cam {angles[0]} {angles[1]}'
+
+        serial_command += '\n'
+
+        self.send_serial_command(bytes(serial_command, 'ascii'))
+        return ROVER_STATUS.OK
+
     def stop_motors(self, motors):
 
         serial_command = 'move_stop '
@@ -199,6 +207,7 @@ class RoverRequestHandler:
         self.allowed_commands = {'move': self.cmd_move,
                                  'set_speed': self.cmd_set_speed,
                                  'move_cam': self.cmd_move_camera,
+                                 'set_cam': self.cmd_set_camera,
                                  'move_stop': self.cmd_move_stop,
                                  'track': self.cmd_track_person,
                                  'untrack': self.cmd_untrack_person,
@@ -256,7 +265,8 @@ class RoverRequestHandler:
     async def send_message(self, message):
         try:
             encoded_msg = json.dumps(message) + '\n'
-            await self.writer.write(encoded_msg.encode())
+            self.writer.write(encoded_msg.encode())
+            await self.writer.drain()
         except Exception as e:
             print(type(e))  # the exception instance
             print(e.args)  # arguments stored in .args
@@ -352,6 +362,25 @@ class RoverRequestHandler:
         except:
             await self.error_response("bad_params")
 
+    # Set the camera to the desired angle
+    async def cmd_set_camera(self, message):
+        print('Processing set camera command')
+
+        try:
+            params = message['params']
+            angles = params['angles']
+
+            r = rover_hal.set_cam(angles)
+            if r == ROVER_STATUS.OK:
+                await self.success_response()
+            elif r == ROVER_STATUS.CAM_TOP_LIMIT:
+                await self.error_response("top_limit")
+            elif r == ROVER_STATUS.CAM_BOTTOM_LIMIT:
+                await self.error_response("bottom_limit")
+
+        except:
+            await self.error_response("bad_params")
+
     # Stops the desired movements
     async def cmd_move_stop(self, message):
 
@@ -428,7 +457,7 @@ class BroadcastOutput(object):
 -f v4l2 -input_format yuyv422 -s 640x480 -r 30 -i /dev/video0 \
 -vcodec mpeg2video \
 -map 0:0 -threads 8 -an \
--muxdelay 0.001 -vb 5M -maxrate 10M \
+-muxdelay 0.001 -qscale:v 2 -maxrate 10M \
 -sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 
@@ -494,6 +523,11 @@ async def main():
     rover_handler = RoverRequestHandler()
 
     print('Starting recording')
+
+    # await output.start()
+    #
+    # while True:
+    #     asyncio.sleep(10)
 
     await asyncio.gather(rover_handler.connect(), output.start())
     await rover_handler.serve()
