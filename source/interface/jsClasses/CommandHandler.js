@@ -1,7 +1,8 @@
 'use strict';
 
-
 //Misc vars for arrowKeys sprite
+import * as consts from './Constants.js';
+import {CAM_DIRECTION} from "./Constants";
 
 const ARROW_CONTAINER_SIZE = 241;
 
@@ -13,7 +14,6 @@ const DOWN_ID = 4;
 const CCW_ID = 5;
 const CW_ID = 6;
 
-
 const CIDLE_ID = 0;
 const CDOWN_ID = 1;
 const CUP_ID = 2;
@@ -23,22 +23,47 @@ export default class CommandHandler {
 
     constructor(keyDiv) {
 
-        this.up = document.querySelector("#" + keyDiv + " #forward");
-        this.left = document.querySelector("#" + keyDiv + " #left");
-        this.right = document.querySelector("#" + keyDiv + " #right");
-        this.down = document.querySelector("#" + keyDiv + " #backward");
+        this.key_mappings_movement = {
+            'w' : consts.ROVER_DIRECTION.FORWARD,
+            'a' : consts.ROVER_DIRECTION.LEFT,
+            's' : consts.ROVER_DIRECTION.BACK,
+            'd' : consts.ROVER_DIRECTION.RIGHT
+        };
 
-        this.ccw = document.querySelector("#" + keyDiv + " #ccw");
-        this.cw = document.querySelector("#" + keyDiv + " #cw");
+        this.key_mappings_camera = {
+            'r' : consts.CAM_DIRECTION.UP,
+            'f' : consts.CAM_DIRECTION.DOWN,
+            'q' : consts.CAM_DIRECTION.CCW,
+            'e' : consts.CAM_DIRECTION.CW
+        };
 
-        this.arrowContainer = document.querySelector("#" + keyDiv + " #arrowkeys");
-        this.cameraKeysContainer = document.querySelector("#" + keyDiv + " #cameraControls");
 
-        this.cameraUp = document.querySelector("#" + keyDiv + " #cameraUp");
-        this.cameraDown = document.querySelector("#" + keyDiv + " #cameraDown");
-        this.cameraLeft = document.querySelector("#" + keyDiv + " #cameraLeft");
-        this.cameraRight = document.querySelector("#" + keyDiv + " #cameraRight");
-        this.cameraCenter = document.querySelector("#" + keyDiv + " #cameraCenter");
+        // These needs to be mapped to the correct offset for the image
+        this.movement_display_mappings = {
+            0 : IDLE_ID,
+            1 : UP_ID,
+            2 : DOWN_ID,
+            4 : LEFT_ID,
+            8 : RIGHT_ID,
+            16 : ,
+            32 : ,
+            5 : ,
+            9 : ,
+            6 : ,
+            10 :
+        };
+
+        this.cam_display_mappings = {
+            0 : ,
+            1 : ,
+            2 : ,
+            4 : ,
+            8 : ,
+            5 : ,
+            9 : ,
+            6 : ,
+            10 :
+        };
 
 
         this.speedSlider = document.getElementById("speedSlider");
@@ -53,207 +78,113 @@ export default class CommandHandler {
     };
 
 
-    bind(rover) {
+    bindCommands(rover) {
 
         this.rover = rover;
+        // We Python now boyzzzz
+        let self = this;
 
-        var that = this;
+        let movementControls = document.querySelectorAll('#movementControls div');
+        movementControls.forEach( function(element){
+            self.bindStartFunction(element, function(){
+                self.handleMovementControlBegin( element.dataset.bid );
+            });
 
+            self.bindEndFunction(element, function(){
+                self.handleMovementControlEnd( element.dataset.bid );
+            });
 
-        //FORWARD
-        this.bindStartFunction(this.up, function () {
-            that.setButtonDisplay(UP_ID);
-            return rover.forward();
         });
 
-        this.bindEndFunction(this.up, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
+        let cameraControls = document.querySelectorAll('#cameraControls div');
+        cameraControls.forEach( function(element){
+            self.bindStartFunction(element, function(){
+                self.handleCameraControlBegin( element.dataset.bid );
+            });
+
+            self.bindEndFunction(element, function(){
+                self.handleCameraControlEnd( element.dataset.bid );
+            });
+
         });
-
-
-        //BACKWARD
-        this.bindStartFunction(this.down, function () {
-            that.setButtonDisplay(DOWN_ID);
-            return rover.backward();
-        });
-
-        this.bindEndFunction(this.down, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
-        });
-
-
-        //LEFT
-        this.bindStartFunction(this.left, function () {
-            that.setButtonDisplay(LEFT_ID);
-            return rover.left();
-        });
-
-        this.bindEndFunction(this.left, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
-        });
-
-
-        //RIGHT
-        this.bindStartFunction(this.right, function () {
-            that.setButtonDisplay(RIGHT_ID);
-            return rover.right();
-        });
-
-        this.bindEndFunction(this.right, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
-        });
-
-
-        //CWISE
-        this.bindStartFunction(this.cw, function () {
-            that.setButtonDisplay(CW_ID);
-            return rover.forwardRight();
-        });
-
-        this.bindEndFunction(this.cw, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
-        });
-
-        //CCWISE
-        this.bindStartFunction(this.ccw, function () {
-            that.setButtonDisplay(CCW_ID);
-            return rover.forwardLeft();
-        });
-
-        this.bindEndFunction(this.ccw, function () {
-            that.setButtonDisplay(IDLE_ID);
-            return rover.stopAction();
-        });
-
-        //CAMERA UP
-        this.bindStartFunction(this.cameraUp, function () {
-            that.setCameraButtonDisplay(UP_ID);
-            return rover.cameraUp();
-        });
-
-        this.bindEndFunction(this.cameraUp, function () {
-            that.setCameraButtonDisplay(IDLE_ID);
-            return rover.stopCamera();
-        });
-
-
-        //CAMERA DOWN
-        this.bindStartFunction(this.cameraDown, function () {
-            that.setCameraButtonDisplay(DOWN_ID);
-            return rover.cameraDown();
-        });
-
-        this.bindEndFunction(this.cameraDown, function () {
-            that.setCameraButtonDisplay(IDLE_ID);
-            return rover.stopCamera();
-        });
-
-
-        //CAMERA LEFT
-        this.bindStartFunction(this.cameraLeft, function () {
-            that.setCameraButtonDisplay(LEFT_ID);
-            return rover.cameraLeft();
-        });
-
-        this.bindEndFunction(this.cameraLeft, function () {
-            that.setCameraButtonDisplay(IDLE_ID);
-            return rover.stopCamera();
-        });
-
-        //CAMERA RIGHT
-        this.bindStartFunction(this.cameraRight, function () {
-            that.setCameraButtonDisplay(RIGHT_ID);
-            return rover.cameraRight();
-        });
-
-        this.bindEndFunction(this.cameraRight, function () {
-            that.setCameraButtonDisplay(IDLE_ID);
-            return rover.stopCamera();
-        });
-
-
-        //CAMERA RESET
-        this.bindStartFunction(this.cameraCenter, function () {
-            that.setCameraButtonDisplay(IDLE_ID);
-            return rover.cameraReset();
-        });
-
 
         this.speedSlider.onmousedown = function(e) {
             if(e.path[0].id != "speedTic")
-                that.moveSlider(e.offsetX);
+                self.moveSlider(e.offsetX);
         };
 
+        document.body.onkeydown = this.handleKeyPress.bind(this);
+        document.body.onkeyup = this.handleKeyRelease.bind(this);
+    }
 
-        document.body.onkeydown = function (e) {
-            that.handleKeyPress(e);
-        };
 
-        document.body.onkeyup = function (e) {
-
-            that.handleKeyRelease(e);
-            that.updateKeyDisplay();
+    handleCameraControlBegin(button) {
+        if (button == consts.CAM_DIRECTION.CLR){
+            this.setCameraButtonDisplay(this.cam_display_mappings[consts.CAM_DIRECTION.STOP])
+            this.rover.cameraReset();
+            return;
         }
 
+        let newCamDirection = this.rover.currentCamDirection | button;
+        if( consts.ALLOWED_CAM_DIRECTIONS.has(newCamDirection)){
+            this.setCameraButtonDisplay(this.cam_display_mappings[newCamDirection])
+            this.rover.currentCamDirection = newCamDirection;
+            this.rover.updateCamMovement();
+        }
+    }
 
+    handleCameraControlEnd(button) {
+        if (button == consts.CAM_DIRECTION.CLR){
+            return;
+        }
 
-        //document.body.onmouseout = function() {
-        //	console.log("HELLO THERE");
-        //	return rover.stopActionUp();
-        //}
+        let newCamDirection = this.rover.currentCamDirection ^ button;
+        if( consts.ALLOWED_CAM_DIRECTIONS.has(newCamDirection)){
+            this.setCameraButtonDisplay(this.cam_display_mappings[newCamDirection])
+            this.rover.currentCamDirection = newCamDirection;
+            this.rover.updateCamMovement();
+        }
+    }
 
+    handleMovementControlBegin(button) {
+        let newDirection = this.rover.currentDirection | button;
+        if( consts.ALLOWED_DIRECTIONS.has(newDirection)){
+            this.setButtonDisplay(this.movement_display_mappings[newDirection])
+            this.rover.currentDirection = newDirection;
+            this.rover.updateMovement();
+        }
+    }
 
+    handleMovementControlEnd(button) {
+        let newDirection = this.rover.currentDirection ^ button;
+        if( consts.ALLOWED_DIRECTIONS.has(newDirection)){
+            this.setButtonDisplay(this.movement_display_mappings[newDirection])
+            this.rover.currentDirection = newDirection;
+            this.rover.updateMovement();
+        }
     }
 
     handleKeyPress(e) {
-
         //don't event check switch if key is already pressed
         if (!this.pressed[e.keyCode]) {
-
-            console.log("HELLO THERE");
-
-            switch (e.key) {
-                case "w":
-                    this.setButtonDisplay(UP_ID);
-                    this.rover.forward();
-                    break;
-
-                case "a":
-                    this.setButtonDisplay(LEFT_ID);
-                    this.rover.repeatAction(this.rover.left, 750);
-                    break;
-
-                case "s":
-                    this.setButtonDisplay(DOWN_ID);
-                    this.rover.repeatAction(this.rover.backward, 750);
-                    break;
-
-                case "d":
-                    this.setButtonDisplay(RIGHT_ID);
-                    this.rover.repeatAction(this.rover.right, 750);
-                    break;
-            }
+            if( e.key in this.key_mappings_movement )
+                this.handleMovementControlBegin(this.key_mappings_movement[e.key]);
+            else if( e.key in this.key_mappings_camera )
+                this.handleCameraControlBegin(this.key_mappings_camera[e.key]);
 
             this.pressed[e.keyCode] = true;
-
         }
-
-    }
-
-    updateKeyDisplay() {
-
     }
 
     handleKeyRelease(e) {
+        if (this.pressed[e.keyCode]) {
+            if( e.key in this.key_mappings_movement )
+                this.handleMovementControlEnd(this.key_mappings_movement[e.key]);
+            else if( e.key in this.key_mappings_camera )
+                this.handleCameraControlEnd(this.key_mappings_camera[e.key]);
 
-        this.pressed[e.keyCode] = false;
-        this.rover.stopAction();
-
+            this.pressed[e.keyCode] = false;
+        }
     }
 
 
@@ -292,7 +223,7 @@ export default class CommandHandler {
     bindEndFunction(button, action) {
         var rover = this.rover;
 
-        button.onmouseout = function () {
+        button.onmouseup= function () {
             return action();
         };
         button.onmouseup = function () {
@@ -306,8 +237,6 @@ export default class CommandHandler {
 
 
     moveSlider(offset) {
-
-
         //ugly stuff to get the right offset with the bars
         offset-=7;
         offset = Math.min(Math.max(offset, 30), 298);

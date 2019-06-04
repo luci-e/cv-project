@@ -12,7 +12,7 @@ import threading
 from struct import Struct
 import cv2
 
-STREAM_BLOCKSIZE = 512
+STREAM_BLOCKSIZE = 256
 
 class ServerData():
     def __init__(self):
@@ -25,7 +25,7 @@ class StreamData():
     def __init__(self):
         self.width = 640
         self.height = 480
-        self.framerate = 30.0
+        self.framerate = 60.0
         self.jsmpeg_magic = b'jsmp'
         self.jsmpeg_header = Struct('>4sHH')
 
@@ -135,7 +135,7 @@ class RoverHandler:
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -threads 8 -qscale 3 -f mpeg1video -'
+            -threads 8 -qscale:v 7 -an -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
@@ -163,7 +163,7 @@ class RoverHandler:
 
         try:
             while True:
-                buf = await self.converter.stdout.readexactly(STREAM_BLOCKSIZE)
+                buf = await self.converter.stdout.read(STREAM_BLOCKSIZE)
                 if buf:
                     for client_id, ws in self.stream_clients.items():
                         try:
@@ -171,6 +171,7 @@ class RoverHandler:
                         except:
                             print('Removing stream socket from rover')
                             closed_sockets.add(client_id)
+
 
                 for client_id in closed_sockets:
                     try:
