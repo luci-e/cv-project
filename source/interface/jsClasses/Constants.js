@@ -3,14 +3,37 @@ export default class Constants {
 	//Misc vars for arrowKeys sprite
 	constructor() {
 		
-		ARROW_CONTAINER_SIZE = 241;
-
-		IDLE_ID = 0;
-		UP_ID = 3;
-		LEFT_ID = 1;
-		RIGHT_ID = 2;
-		DOWN_ID = 4;
-		CCW_ID = 5;
-		CW_ID = 6;
+		this.ARROW_CONTAINER_SIZE = 241;
+		this.AIDLE_ID = 0;
+		this.AUP_ID = 3;
+		this.ALEFT_ID = 1;
+		this.ARIGHT_ID = 2;
+		this.ADOWN_ID = 4;
+		this.ACCW_ID = 5;
+		this.ACW_ID = 6;
 	}
 }
+
+export const ROVER_DIRECTION = {
+	STOP: 0,
+	FORWARD: 1,
+	BACK: 2,
+	LEFT: 4,
+	RIGHT: 8,
+	CW: 16,
+	CCW: 32
+};
+
+export const ALLOWED_DIRECTIONS =  new Set([0, 1, 2, 4, 8, 16, 32, 5, 9, 6, 10]);
+
+export const CAM_DIRECTION = {
+	STOP: 0,
+	UP: 1,
+	DOWN: 2,
+	CW: 4,
+	CCW: 8,
+	CLR: 16
+};
+
+export const ALLOWED_CAM_DIRECTIONS =  new Set([0, 1, 2, 4, 8, 5, 9, 6, 10]);
+

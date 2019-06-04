@@ -108,7 +108,7 @@ body {
 	justify-content: space-between;
 }
 
-#arrowkeys {
+#movementControls {
 	align-items: center;
 	flex-basis:241px;
 	min-width:241px;

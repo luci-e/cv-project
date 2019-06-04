@@ -1,5 +1,6 @@
 'use strict';
 import uuid4 from '../libs/uuid.js';
+import * as consts from './Constants.js';
 
 export default class RoverHandler {
     constructor(name, bindings, serverAddress, commandPort, streamingPort, createTab) {
@@ -24,7 +25,10 @@ export default class RoverHandler {
         this.canvas = document.getElementById('videoOutput');
         this.ctx = this.canvas.getContext("2d");
 
-        this.getCommandHandler().bind(this);
+        this.currentDirection = consts.ROVER_DIRECTION.STOP;
+        this.currentCamDirection = consts.CAM_DIRECTION.STOP;
+
+        this.commandHandler.bindCommands(this);
 
         if (createTab !== false) {
             this.addToWindow();
@@ -265,28 +269,82 @@ export default class RoverHandler {
 
     }
 
+    updateMovement(){
+        console.log(this.currentDirection);
+        let direction = [];
 
-    repeatAction(action, timeForAction) {
+        if ( this.currentDirection === consts.ROVER_DIRECTION.STOP ){
+            this.stopAction();
+            return;
+        }else{
+            if ( this.currentDirection & consts.ROVER_DIRECTION.FORWARD ){
+                direction.push('forward')
+            }
+            if ( this.currentDirection & consts.ROVER_DIRECTION.BACK ){
+                direction.push('back')
+            }
+            if ( this.currentDirection & consts.ROVER_DIRECTION.LEFT ){
+                direction.push('left')
+            }
+            if ( this.currentDirection & consts.ROVER_DIRECTION.RIGHT ){
+                direction.push('right')
+            }
+            if ( this.currentDirection & consts.ROVER_DIRECTION.CW ){
+                direction.push('cw')
+            }
+            if ( this.currentDirection & consts.ROVER_DIRECTION.CCW ){
+                direction.push('ccw')
+            }
+        }
 
-        action(this);
+        if( direction.length === 0 )
+            return;
 
-    }
-
-    forward() {
-
-        var msg = {
+        let msg = {
             cmd: "move",
             params: {
-                direction: ["forward"]
+                direction: direction
             }
         };
         this.lastCtrlMsg = msg;
         this.sendCtrlMsg(msg);
-
-        console.log(this.getId() + ": Sending move forward message");
-
     }
 
+    updateCamMovement(){
+        console.log(this.currentCamDirection);
+        let camDirection = [];
+
+        if ( this.currentCamDirection === consts.CAM_DIRECTION.STOP ){
+            this.stopCamera();
+            return;
+        }else{
+            if ( this.currentCamDirection & consts.CAM_DIRECTION.UP ){
+                camDirection.push('up')
+            }
+            if ( this.currentCamDirection & consts.CAM_DIRECTION.DOWN ){
+                camDirection.push('down')
+            }
+            if ( this.currentCamDirection & consts.CAM_DIRECTION.CW ){
+                camDirection.push('cw')
+            }
+            if ( this.currentCamDirection & consts.CAM_DIRECTION.CCW ){
+                camDirection.push('ccw')
+            }
+        }
+
+        if( camDirection.length === 0 )
+            return;
+
+        let msg = {
+            cmd: "move_cam",
+            params: {
+                direction: camDirection
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
     stopAction() {
 
@@ -313,152 +371,9 @@ export default class RoverHandler {
         this.sendCtrlMsg(msg);
     }
 
-    right() {
-
-        console.log(this.getId() + ": Sending move right message");
-
-        var msg = {
-            cmd: "move",
-            params: {
-                direction: ["cw"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-
-        this.sendCtrlMsg(msg);
-    }
-
-    left() {
-
-        console.log(this.getId() + ": Sending move left message");
-
-        var msg = {
-            cmd: "move",
-            params: {
-                direction: ["ccw"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-        this.sendCtrlMsg(msg);
-    }
-
-    backward() {
-
-        console.log(this.getId() + ": Sending move backward message");
-
-        var msg = {
-            cmd: "move",
-            params: {
-                direction: ["back"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-
-        this.sendCtrlMsg(msg);
-    }
-
-
-    forwardRight() {
-
-        console.log(this.getId() + ": Sending move cw message");
-
-        var msg = {
-            cmd: "move",
-            params: {
-                direction: ["forward", "right"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-
-        this.sendCtrlMsg(msg);
-    }
-
-
-    forwardLeft() {
-
-        console.log(this.getId() + ": Sending move cw message");
-
-        var msg = {
-            cmd: "move",
-            params: {
-                direction: ["forward", "left"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-
-        this.sendCtrlMsg(msg);
-    }
-
-
-    cameraUp() {
-
-        console.log("HELLO THERE");
-
-        var msg = {
-            cmd: "move_cam",
-            params: {
-                direction: ["up"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-        this.sendCtrlMsg(msg);
-    }
-
-
-    cameraDown() {
-
-        console.log("HELLO THERE");
-
-        var msg = {
-            cmd: "move_cam",
-            params: {
-                direction: ["down"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-        this.sendCtrlMsg(msg);
-    }
-
-
-    cameraLeft() {
-
-        console.log("HELLO THERE");
-
-        var msg = {
-            cmd: "move_cam",
-            params: {
-                direction: ["cw"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-        this.sendCtrlMsg(msg);
-    }
-
-    cameraRight() {
-
-        console.log("HELLO THERE");
-
-        var msg = {
-            cmd: "move_cam",
-            params: {
-                direction: ["ccw"]
-            }
-        };
-
-        this.lastCtrlMsg = msg;
-        this.sendCtrlMsg(msg);
-    }
-
-
     cameraReset() {
+
+        this.currentCamDirection = consts.CAM_DIRECTION.STOP;
 
     	var msg = {
             cmd: "set_cam",
