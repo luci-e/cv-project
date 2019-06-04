@@ -2,7 +2,7 @@
 
 //Misc vars for arrowKeys sprite
 import * as consts from './Constants.js';
-import {CAM_DIRECTION} from "./Constants";
+import {ROVER_DIRECTION} from "./Constants";
 
 const ARROW_CONTAINER_SIZE = 241;
 
@@ -40,29 +40,29 @@ export default class CommandHandler {
 
         // These needs to be mapped to the correct offset for the image
         this.movement_display_mappings = {
-            0 : IDLE_ID,
-            1 : UP_ID,
-            2 : DOWN_ID,
-            4 : LEFT_ID,
-            8 : RIGHT_ID,
-            16 : ,
-            32 : ,
-            5 : ,
-            9 : ,
-            6 : ,
-            10 :
+            [consts.ROVER_DIRECTION.STOP] : IDLE_ID,
+            [consts.ROVER_DIRECTION.FORWARD] : UP_ID,
+            [consts.ROVER_DIRECTION.BACK] : DOWN_ID,
+            [consts.ROVER_DIRECTION.LEFT] : LEFT_ID,
+            [consts.ROVER_DIRECTION.RIGHT] : RIGHT_ID,
+            [consts.ROVER_DIRECTION.CW] : ,
+            [consts.ROVER_DIRECTION.CCW] : ,
+            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.LEFT]  : ,
+            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.RIGHT] : ,
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.LEFT] : ,
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.RIGHT] :
         };
 
         this.cam_display_mappings = {
-            0 : ,
-            1 : ,
-            2 : ,
-            4 : ,
-            8 : ,
-            5 : ,
-            9 : ,
-            6 : ,
-            10 :
+            [consts.CAM_DIRECTION.STOP] : LEFT_ID,
+            [consts.CAM_DIRECTION.UP] : LEFT_ID,
+            [consts.CAM_DIRECTION.DOWN] : RIGHT_ID,
+            [consts.CAM_DIRECTION.CW] : ,
+            [consts.CAM_DIRECTION.CCW] : ,
+            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CW]  : ,
+            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CCW] : ,
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CW] : ,
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] :
         };
 
 
