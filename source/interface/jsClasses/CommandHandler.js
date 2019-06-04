@@ -2,7 +2,7 @@
 
 //Misc vars for arrowKeys sprite
 import * as consts from './Constants.js';
-import {ROVER_DIRECTION} from "./Constants";
+import {ROVER_DIRECTION} from "./Constants.js";
 
 const ARROW_CONTAINER_SIZE = 241;
 
@@ -11,12 +11,11 @@ const UP_ID = 3;
 const LEFT_ID = 1;
 const RIGHT_ID = 2;
 const DOWN_ID = 4;
-const CCW_ID = 5;
-const CW_ID = 6;
+const FORWARD_LEFT_ID = 5;
+const FORWARD_RIGHT_ID = 6;
+const BACKWARD_LEFT_ID = 7;
+const BACKWARD_RIGHT_ID = 8;
 
-const CIDLE_ID = 0;
-const CDOWN_ID = 1;
-const CUP_ID = 2;
 
 
 export default class CommandHandler {
@@ -45,25 +44,29 @@ export default class CommandHandler {
             [consts.ROVER_DIRECTION.BACK] : DOWN_ID,
             [consts.ROVER_DIRECTION.LEFT] : LEFT_ID,
             [consts.ROVER_DIRECTION.RIGHT] : RIGHT_ID,
-            [consts.ROVER_DIRECTION.CW] : ,
-            [consts.ROVER_DIRECTION.CCW] : ,
-            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.LEFT]  : ,
-            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.RIGHT] : ,
-            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.LEFT] : ,
-            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.RIGHT] :
+            [consts.ROVER_DIRECTION.CW] : RIGHT_ID,
+            [consts.ROVER_DIRECTION.CCW] : LEFT_ID,
+            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.LEFT]  : FORWARD_LEFT_ID,
+            [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.RIGHT] : FORWARD_RIGHT_ID,
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.LEFT] : BACKWARD_LEFT_ID,
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.RIGHT] : BACKWARD_RIGHT_ID
         };
 
         this.cam_display_mappings = {
             [consts.CAM_DIRECTION.STOP] : LEFT_ID,
             [consts.CAM_DIRECTION.UP] : LEFT_ID,
             [consts.CAM_DIRECTION.DOWN] : RIGHT_ID,
-            [consts.CAM_DIRECTION.CW] : ,
-            [consts.CAM_DIRECTION.CCW] : ,
-            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CW]  : ,
-            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CCW] : ,
-            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CW] : ,
-            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] :
+            [consts.CAM_DIRECTION.CW] : RIGHT_ID,
+            [consts.CAM_DIRECTION.CCW] : LEFT_ID,
+            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CW]  : FORWARD_RIGHT_ID,
+            [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CCW] : FORWARD_LEFT_ID,
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CW] : BACKWARD_LEFT_ID,
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] : BACKWARD_RIGHT_ID
         };
+
+
+        this.arrowContainer = document.querySelector('#movementControls');
+        this.cameraKeysContainer = document.querySelector('#cameraControls');
 
 
         this.speedSlider = document.getElementById("speedSlider");

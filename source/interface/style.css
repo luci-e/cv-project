@@ -94,6 +94,8 @@ body {
 
 .buttonKey {
 	
+	border:1px solid black;
+
 	position:absolute;
 	width:60px;
 	height:60px;
