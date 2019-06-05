@@ -2,7 +2,6 @@
 
 //Misc vars for arrowKeys sprite
 import * as consts from './Constants.js';
-import {ROVER_DIRECTION} from "./Constants.js";
 
 const ARROW_CONTAINER_SIZE = 241;
 
@@ -53,9 +52,9 @@ export default class CommandHandler {
         };
 
         this.cam_display_mappings = {
-            [consts.CAM_DIRECTION.STOP] : LEFT_ID,
-            [consts.CAM_DIRECTION.UP] : LEFT_ID,
-            [consts.CAM_DIRECTION.DOWN] : RIGHT_ID,
+            [consts.CAM_DIRECTION.STOP] : IDLE_ID,
+            [consts.CAM_DIRECTION.UP] : UP_ID,
+            [consts.CAM_DIRECTION.DOWN] : DOWN_ID,
             [consts.CAM_DIRECTION.CW] : RIGHT_ID,
             [consts.CAM_DIRECTION.CCW] : LEFT_ID,
             [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CW]  : FORWARD_RIGHT_ID,
@@ -206,16 +205,23 @@ export default class CommandHandler {
     }
 
 
-    bindStartFunction(button, action) {
+    bindStartFunction(ctrl, action) {
 
-        button.onmousedown = function () {
+        ctrl.onmousedown = function () {
             return action();
         };
-        button.ontouchstart = function () {
-            button.onmouseout = function () {
+
+        ctrl.onmouseover = function(event){
+            if( event.button == 0 && event.buttons ){
+                return action();
+            }
+        };
+
+        ctrl.ontouchstart = function () {
+            ctrl.onmouseout = function () {
                 return false;
             };
-            button.onmousedown = function () {
+            ctrl.onmousedown = function () {
                 return false;
             };
             return action();
@@ -223,16 +229,23 @@ export default class CommandHandler {
 
     }
 
-    bindEndFunction(button, action) {
+    bindEndFunction(ctrl, action) {
         var rover = this.rover;
 
-        button.onmouseup= function () {
+        ctrl.onmouseup= function () {
             return action();
         };
-        button.onmouseup = function () {
+
+        ctrl.onmouseleave = function(event){
+            if( event.button == 0 && event.buttons ){
+                return action();
+            }
+        };
+
+        ctrl.onmouseup = function () {
             return action();
         };
-        button.ontouchend = function () {
+        ctrl.ontouchend = function () {
             return action();
         };
 
