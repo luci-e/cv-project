@@ -451,13 +451,12 @@ class RoverRequestHandler:
 
 
 class BroadcastOutput(object):
-    def __init__(self, camera):
+    def __init__(self):
         print('Spawning background conversion process')
         self.command = f'ffmpeg \
--f v4l2 -input_format yuyv422 -s 640x480 -r 30 -i /dev/video0 \
--vcodec mpeg2video \
--map 0:0 -threads 8 -an \
--muxdelay 0.001 -qscale:v 2 -maxrate 10M \
+-f v4l2 -input_format yuyv422 -s 640x360 -r 30 -i /dev/video0 -an \
+-vcodec mpeg2video -q:v 15  \
+-map 0:0 -threads 4 -an \
 -sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 
@@ -513,11 +512,9 @@ async def main():
     # logger.setLevel(logging.DEBUG)
     # logger.addHandler(logging.StreamHandler())
 
-    print('Initializing camera')
-    camera = USBCamera(rover_shared_data.camera_no)
 
     print('Initializing broadcast thread')
-    output = BroadcastOutput(camera)
+    output = BroadcastOutput()
 
     print('Initializing command thread')
     rover_handler = RoverRequestHandler()

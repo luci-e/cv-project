@@ -24,7 +24,7 @@ class ServerData():
 class StreamData():
     def __init__(self):
         self.width = 640
-        self.height = 480
+        self.height = 360
         self.framerate = 60.0
         self.jsmpeg_magic = b'jsmp'
         self.jsmpeg_header = Struct('>4sHH')
@@ -135,12 +135,12 @@ class RoverHandler:
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -threads 8 -qscale:v 7 -an -f mpeg1video -'
+            -threads 8 -q:v 15 -an -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
                                                                    stdout=asyncio.subprocess.PIPE,
-                                                                   stderr=asyncio.subprocess.DEVNULL,
+                                                                   stderr=asyncio.subprocess.STDOUT,
                                                                    close_fds=False, shell=True)
             atexit.register(lambda: self.converter.kill())
             asyncio.create_task(self.start_streaming())
@@ -149,6 +149,7 @@ class RoverHandler:
                 await asyncio.sleep(1.0 / stream_data.framerate)
                 grabbed, frame = self.cap.read()
                 if grabbed:
+                    self.cv_helper.detect_faces(frame)
                     self.converter.stdin.write(frame.tostring())
                     await self.converter.stdin.drain()
 

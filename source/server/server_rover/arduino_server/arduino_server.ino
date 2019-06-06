@@ -83,9 +83,10 @@ class rover_HAL {
 		motor_controller right_motor;
 		float current_speed = 0.0;
 		float speed_cap = 0.2;
-		float acceleration = 1.0;
-		float deceleration = 0.7;
+		float acceleration = 1.0 / 1000.0;
+		float deceleration = 0.7 / 1000.0;
 
+    ROVER_DIRECTION last_rover_direction = ROVER_DIRECTION::STOP;
 		ROVER_DIRECTION current_rover_direction = ROVER_DIRECTION::STOP;
 
 		movement_controller() {};
@@ -106,8 +107,8 @@ class rover_HAL {
 
 			switch (this->current_rover_direction) {
 			case ROVER_DIRECTION::STOP: {
-				this->left_motor.set_speed(-this->current_speed);
-				this->right_motor.set_speed(this->current_speed);
+				this->left_motor.set_speed(0.0);
+				this->right_motor.set_speed(0.0);
 				break;
 			}
 			case ROVER_DIRECTION::FORWARD: {
@@ -121,43 +122,51 @@ class rover_HAL {
 				break;
 			}
 			case ROVER_DIRECTION::LEFT: {
-				this->left_motor.set_speed(0.0);
-				this->right_motor.set_speed(-this->current_speed);
+				//this->left_motor.set_speed(0.0);
+				//this->right_motor.set_speed(-this->current_speed);
+        // Actually do ccw
+        this->left_motor.set_speed(-0.05);
+        this->right_motor.set_speed(-0.05);
+        
 				break;
 			}
 			case ROVER_DIRECTION::RIGHT: {
-				this->left_motor.set_speed(this->current_speed);
-				this->right_motor.set_speed(0.0);
+				//this->left_motor.set_speed(this->current_speed);
+				//this->right_motor.set_speed(0.0);
+        // Actually do cw
+        this->left_motor.set_speed(0.05);
+        this->right_motor.set_speed(0.05);
+        
 				break;
 			}
 			case ROVER_DIRECTION::FORWARD_LEFT: {
-				this->left_motor.set_speed(0.5 * this->current_speed);
+				this->left_motor.set_speed(0.6 * this->current_speed);
 				this->right_motor.set_speed(-this->current_speed);
 				break;
 			}
 			case ROVER_DIRECTION::FORWARD_RIGHT: {
 				this->left_motor.set_speed(this->current_speed);
-				this->right_motor.set_speed(-0.5 * this->current_speed);
+				this->right_motor.set_speed(-0.6 * this->current_speed);
 				break;
 			}
 			case ROVER_DIRECTION::BACK_LEFT: {
-				this->left_motor.set_speed(-0.8 * this->current_speed);
+				this->left_motor.set_speed(-0.6 * this->current_speed);
 				this->right_motor.set_speed(this->current_speed);
 				break;
 			}
 			case ROVER_DIRECTION::BACK_RIGHT: {
 				this->left_motor.set_speed(-this->current_speed);
-				this->right_motor.set_speed(0.8 * this->current_speed);
+				this->right_motor.set_speed(0.6 * this->current_speed);
 				break;
 			}
 			case ROVER_DIRECTION::CW: {
-				this->left_motor.set_speed(this->current_speed);
-				this->right_motor.set_speed(this->current_speed);
+				this->left_motor.set_speed(0.05);
+				this->right_motor.set_speed(0.05);
 				break;
 			}
 			case ROVER_DIRECTION::CCW: {
-				this->left_motor.set_speed(-this->current_speed);
-				this->right_motor.set_speed(-this->current_speed);
+				this->left_motor.set_speed(-0.05);
+				this->right_motor.set_speed(-0.05);
 				break;
 			}
 			}
@@ -168,7 +177,7 @@ class rover_HAL {
 			// Update the speed
 			if (this->current_rover_direction != ROVER_DIRECTION::STOP) {
 				if (this->current_speed < this->speed_cap) {
-					float delta_v = this->acceleration * (float)delta_t / 1000.0;
+					float delta_v = this->acceleration * (float)delta_t;
 					//Serial.print("Delta_v:");
 					//Serial.println(delta_v);
 
@@ -182,7 +191,7 @@ class rover_HAL {
 			else {
 				if (this->current_speed > 0.0) {
 				brake:
-					float delta_v = this->deceleration * (float)delta_t / 1000.0;
+					float delta_v = this->deceleration * (float)delta_t;
 					//Serial.print("Delta_v:");
 					//Serial.println(delta_v);
 
@@ -212,7 +221,7 @@ class rover_HAL {
 		float xAngle_upper_limit = 90.0, xAngle_lower_limit = -90.0;
 		float zAngle_upper_limit = 90.0, zAngle_lower_limit = -90.0;
 
-		float angular_velocity = 30;
+		float angular_velocity = 30 / 1000.0;
 
 		camera_controller() {};
 
@@ -259,7 +268,7 @@ class rover_HAL {
 
 		void update(unsigned long delta_t) {
 			if (this->current_camera_direction != CAM_DIRECTION::STOP) {
-				float delta_angle = this->angular_velocity * (float)delta_t / 1000.0;
+				float delta_angle = this->angular_velocity * (float)delta_t;
 				//Serial.println(delta_angle);
 
 				if ((this->current_camera_direction & CAM_DIRECTION::UP) != CAM_DIRECTION::STOP) {
@@ -272,11 +281,11 @@ class rover_HAL {
 				}
 
 				if ((this->current_camera_direction & CAM_DIRECTION::CW) != CAM_DIRECTION::STOP) {
-					this->zAngle += delta_angle;
+					this->zAngle -= delta_angle;
 					//Serial.println("Moving cw");
 				}
 				else if ((this->current_camera_direction & CAM_DIRECTION::CCW) != CAM_DIRECTION::STOP) {
-					this->zAngle -= delta_angle;
+					this->zAngle += delta_angle;
 					//Serial.println("Moving ccw");
 				}
 
@@ -610,6 +619,7 @@ public:
 	unsigned int buffer_size;
 	unsigned int current_size = 0;
 	unsigned int argcount = 0;
+  unsigned int last_index = 0;
 
 	command_parser() {}
 
@@ -647,10 +657,26 @@ public:
 			return -1;
 		}
 	}
+  
+  int parse_string( String str ){
+    int len = str.length();
+    
+    for( int i = 0; i <= len; i++){
+      char c = str.charAt(i);
+      if (this->separators.indexOf(c) >= 0 || i == len ) {
+        this->current_command[argcount] = str.substring(this->last_index, i);
+        this->current_command[argcount].trim();
+        this->argcount++;
+        this->last_index = i+1;
+
+      }
+    }
+  }
 
 	void reset() {
 		this->current_size = 0;
 		this->argcount = 0;
+    this->last_index = 0;
 		this->command_buffer = "";
 	}
 
@@ -706,26 +732,25 @@ unsigned long last_tick = millis();
 
 void loop() {
 
+  bool ex_cmd = false;
+
 	// put your main code here, to run repeatedly:
-	while (Serial.available()) {
-		int ret = g_command_parser.push_char(Serial.read());
-
-		switch (ret) {
-		case 1: {
-			//Serial.println(g_command_parser.current_command[g_command_parser.argcount - 1]);
-			break;
-		}
-
-		case 2: {
-			g_rover_hal.execute_command(g_command_parser.current_command, g_command_parser.argcount);
-			g_command_parser.reset();
-			break;
-		}
-		}
+	if (Serial.available()) {
+		String cmd = Serial.readStringUntil('\n');
+    g_command_parser.parse_string(cmd);
+    g_rover_hal.execute_command( g_command_parser.current_command, g_command_parser.argcount);
+    g_command_parser.reset();
+    ex_cmd = true;
 	}
+    
+    // Perform the updates
+    unsigned long now = millis();
+    unsigned long delta_t = now - last_tick;
 
-	// Perform the updates
-	unsigned long now = millis();
-	g_rover_hal.update(now - last_tick);
-	last_tick = now;
+    //Serial.println(delta_t);
+
+    if( (delta_t > 0) || ex_cmd ){
+      g_rover_hal.update(delta_t);
+      last_tick = now;
+    }
 }
