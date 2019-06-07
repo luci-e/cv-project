@@ -123,6 +123,36 @@ Command track response
 
 ----------------------------------------------------------------------------------------------------
 
+Command track roi request
+
+{
+	"client_id" : "UUID",
+    "rover_id" : "UUID",
+    "timestamp" : timestamp,
+	"cmd" : "track",
+	"params" : {
+		"roi" : [x, y, w, h],
+		"follow" : true/false
+	}
+}
+
+"roi" is a vector of 4 values where x and y are the top left value of the bounding box in the
+image, w and h the width and height respectively.
+
+Command track response
+
+{
+    "server_id" : "UUID",
+    "rover_id" : "UUID",
+	"msg" : "msg",
+	"info" : "failure_reason"
+}
+
+"msg" is "ok" or "failed", if "failed", "info" is present
+"failure_reason" is "invalid bb"
+
+----------------------------------------------------------------------------------------------------
+
 Command untrack person request
 
 {

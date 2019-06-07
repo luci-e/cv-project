@@ -14,6 +14,7 @@ import cv2
 
 STREAM_BLOCKSIZE = 256
 
+
 class ServerData():
     def __init__(self):
         self.stream_port = 8889
@@ -39,6 +40,16 @@ class CVHelper(object):
     def __init__(self):
         cascade_path = './haarcascades/haarcascade_frontalface_alt.xml'
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
+
+        self.object_trackers = {
+            "csrt": cv2.TrackerCSRT_create,
+            "kcf": cv2.TrackerKCF_create,
+            "boosting": cv2.TrackerBoosting_create,
+            "mil": cv2.TrackerMIL_create,
+            "tld": cv2.TrackerTLD_create,
+            "medianflow": cv2.TrackerMedianFlow_create,
+            "mosse": cv2.TrackerMOSSE_create
+        }
 
     def detect_faces(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -90,11 +101,6 @@ class VideoCaptureTreading:
                     self.frame = frame
                     self.read_next = False
 
-            # Display the resulting frame
-            # cv2.imshow('frame', self.frame)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
-
     def read(self):
         if not self.read_next:
             with self.read_lock:
@@ -114,7 +120,7 @@ class VideoCaptureTreading:
 
 class RoverHandler:
 
-    def __init__(self, hello_cmd, cv_helper, reader, writer):
+    def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='mosse'):
         self.rover_id = hello_cmd['rover_id']
         self.description = hello_cmd['description']
         self.stream_path = f'{self.rover_id}.sdp'
@@ -126,16 +132,76 @@ class RoverHandler:
         self.rover_clients = dict()
         self.stream_clients = dict()
 
+        self.server_commands = {
+            'track': self.track_roi
+        }
+
+        self.init_bb = None
+        self.tracker = None
+
+        self.tracking_custom = False
+        self.tracking_face = False
+        self.following_wheels = False
+        self.following_camera = False
+
+        self.tracker_name = tracker_name
+        self.set_obj_tracker(self.tracker_name)
+
     def start_capture(self):
         self.cap = VideoCaptureTreading(self.stream_path)
         self.cap.start()
+
+    def set_obj_tracker(self, tracker_name):
+        self.tracker_name = tracker_name
+        self.tracker = self.cv_helper.object_trackers[self.tracker_name]()
+
+    def init_tracking_roi(self, frame, roi):
+        self.init_bb = roi
+        self.tracker.init(frame, roi)
+
+    def track_roi(self, frame):
+        (success, box) = self.tracker.update(frame)
+
+        # check to see if the tracking was a success
+        if success:
+            (x, y, w, h) = [int(v) for v in box]
+            cv2.rectangle(frame, (x, y), (x + w, y + h),
+                          (0, 255, 0), 2)
+
+    async def stop_tracking_roi(self):
+        if self.tracking_custom or self.tracking_face:
+            self.tracking_face = False
+            self.tracking_custom = False
+            self.following_wheels = False
+            self.following_camera = False
+
+            self.init_bb = None
+
+    async def stop_tracking_custom(self):
+        self.tracking_custom = False
+        self.following_wheels = False
+        self.following_camera = False
+
+    async def stop_tracking_face(self):
+        self.tracking_face = False
+        self.following_wheels = False
+        self.following_camera = False
+
+    async def start_following(self, wheels=False, camera=False):
+        if self.tracking_custom ^ self.tracking_face:
+            self.following_wheels = wheels
+            self.following_camera = camera
+
+    async def stop_following(self):
+        self.following_wheels = False
+        self.following_camera = False
 
     async def start_conversion(self):
         print('Spawning background conversion process')
         try:
 
             command = f'ffmpeg -f rawvideo -pix_fmt bgr24 -s {stream_data.width}x{stream_data.height} -i - \
-            -threads 8 -q:v 15 -an -f mpeg1video -'
+            -threads 8 -q:v 7 -an -f mpeg1video -'
 
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
@@ -149,7 +215,17 @@ class RoverHandler:
                 await asyncio.sleep(1.0 / stream_data.framerate)
                 grabbed, frame = self.cap.read()
                 if grabbed:
-                    self.cv_helper.detect_faces(frame)
+
+                    # TODO
+
+                    if self.init_bb is None:
+                        self.init_tracking_roi(frame, (270, 130, 100, 100))
+                    else:
+                        self.track_roi(frame)
+
+                    # TODO
+
+                    #self.cv_helper.detect_faces(frame)
                     self.converter.stdin.write(frame.tostring())
                     await self.converter.stdin.drain()
 
@@ -173,7 +249,6 @@ class RoverHandler:
                             print('Removing stream socket from rover')
                             closed_sockets.add(client_id)
 
-
                 for client_id in closed_sockets:
                     try:
                         del self.stream_clients[client_id]
@@ -184,37 +259,9 @@ class RoverHandler:
         finally:
             self.converter.stdout.close()
 
-    async def start_cmd_forwarding(self):
-        print('Starting forwarding commands')
-        closed_sockets = set()
-
-        while True:
-            for client_id, ws in self.rover_clients.items():
-                print(f'Client: {client_id}, ws: {ws}')
-                if ws.closed:
-                    print('Removing ctrl socket from rover')
-                    closed_sockets.add(client_id)
-                    continue
-
-                try:
-                    async for message in ws:
-                        print(repr(message))
-                        self.writer.write(message.encode())
-                        await self.writer.drain()
-                        await send_websocket_message({'msg': 'ok'}, ws)
-
-                except:
-                    print('Removing ctrl socket from rover')
-                    closed_sockets.add(client_id)
-
-            for client_id in closed_sockets:
-                try:
-                    del self.rover_clients[client_id]
-                except:
-                    pass
-
-            closed_sockets.clear()
-            await asyncio.sleep(0.001)
+    async def process_server_command(self, message):
+        print(f'Received server command')
+        await self.server_commands[message['cmd']]()
 
     async def forward_client_cmds(self, client_id):
         ws = self.rover_clients[client_id]
@@ -223,6 +270,13 @@ class RoverHandler:
         try:
             async for message in ws:
                 print(repr(message))
+                msg = json.loads(message)
+
+                if msg['cmd'] in self.server_commands:
+                    asyncio.create_task(self.process_server_command(msg))
+                    await send_websocket_message({'msg': 'ok'}, ws)
+                    continue
+
                 self.writer.write(message.encode())
                 await self.writer.drain()
                 await send_websocket_message({'msg': 'ok'}, ws)
@@ -232,11 +286,8 @@ class RoverHandler:
             print('Removing ctrl socket from rover')
             del self.rover_clients[client_id]
 
-        try:
-            print('Removing ctrl socket from rover')
-            del self.rover_clients[client_id]
-        except:
-            pass
+        print('Removing ctrl socket from rover')
+        del self.rover_clients[client_id]
 
     def add_rover_client(self, client_id, websocket):
         print(f'Rover client {client_id} added to rover {self.rover_id}')
@@ -246,9 +297,6 @@ class RoverHandler:
     def add_stream_client(self, client_id, websocket):
         print(f'Stream client {client_id} added to rover {self.rover_id}')
         self.stream_clients[client_id] = websocket
-
-    def read_next_frame(self):
-        pass
 
 
 class ProxyServer(object):

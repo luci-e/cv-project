@@ -76,6 +76,8 @@ class rover_HAL:
     def send_serial_command(self, command):
         print(f'sending {command}')
         self.ser.write(command)
+        line = self.ser.readline()
+        print(f'Received {line}')
 
     def is_blocked(self):
         pass

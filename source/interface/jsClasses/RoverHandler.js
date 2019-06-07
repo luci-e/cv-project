@@ -34,6 +34,23 @@ export default class RoverHandler {
             this.addToWindow();
         }
 
+
+        this.overlay_canvas = document.getElementById('overlayCanvas');
+        this.overlay_ctx = this.overlay_canvas.getContext("2d");
+
+        this.flag = false;
+        this.prevX = 0;
+        this.currX = 0;
+        this.prevY = 0;
+        this.currY = 0;
+
+        this.roi = {x:0,y:0,w:0,h:0};
+
+        this.w = this.overlay_canvas.width;
+        this.h = this.overlay_canvas.height;
+
+        this.init_overlay_canvas();
+
     }
 
     addToWindow() {
@@ -53,6 +70,7 @@ export default class RoverHandler {
         document.getElementById("tabs").appendChild(tab);
 
     }
+
 
     foreground() {
 
@@ -457,5 +475,69 @@ export default class RoverHandler {
 		this.ctx.stroke();
 
 	}
+
+	init_overlay_canvas(){
+
+        this.overlay_canvas.addEventListener("mousemove", function (e) {
+            this.find_xy('move', e);
+        }.bind(this), false);
+        this.overlay_canvas.addEventListener("mousedown", function (e) {
+            this.find_xy('down', e);
+        }.bind(this), false);
+        this.overlay_canvas.addEventListener("mouseup", function (e) {
+            this.find_xy('up', e);
+        }.bind(this), false);
+        this.overlay_canvas.addEventListener("mouseout", function (e) {
+            this.find_xy('out', e);
+        }.bind(this), false);
+
+    }
+
+    find_xy(res, e) {
+        if (res === 'down') {
+            this.prevX = this.currX;
+            this.prevY = this.currY;
+            this.currX = e.clientX - this.canvas.offsetLeft;
+            this.currY = e.clientY - this.canvas.offsetTop;
+
+            this.flag = true;
+
+            this.roi.x = this.currX;
+            this.roi.y = this.currY;
+        }
+        if (res === 'up' || res === "out") {
+            this.flag = false;
+
+            if( this.roi.w !== 0 && this.roi.h !== 0){
+                //send the command to the server adjusted for negative values
+                this.roi.x = 0;
+                this.roi.y = 0;
+                this.roi.w = 0;
+                this.roi.h = 0;
+            }
+
+        }
+        if (res === 'move') {
+            if (this.flag) {
+                this.prevX = this.currX;
+                this.prevY = this.currY;
+                this.currX = e.clientX - this.canvas.offsetLeft;
+                this.currY = e.clientY - this.canvas.offsetTop;
+
+                this.draw_current_roi();
+            }
+        }
+
+    }
+
+
+    draw_current_roi(){
+        this.roi.w = this.currX-this.roi.x;
+        this.roi.h = this.currY-this.roi.y;
+        this.overlay_ctx.clearRect(0,0, this.w, this.h);
+        this.overlay_ctx.strokeRect(this.roi.x, this.roi.y, current_w, current_h);
+    }
+
+
 
 }

@@ -63,10 +63,10 @@ class rover_HAL {
 			//Serial.println(speed_percent);
 
 			if (speed_percent > 0.0) {
-				write_duration = (unsigned int)((float)this->min_cw_speed_duration + speed_percent * (float)(max_cw_speed_duration - min_cw_speed_duration));
+				write_duration = (unsigned int)(this->min_cw_speed_duration + speed_percent * (max_cw_speed_duration - min_cw_speed_duration));
 			}
 			else if (speed_percent < 0.0) {
-				write_duration = (unsigned int)((float)this->min_ccw_speed_duration + speed_percent * (float)(min_ccw_speed_duration - max_ccw_speed_duration));
+				write_duration = (unsigned int)(this->min_ccw_speed_duration + speed_percent * (min_ccw_speed_duration - max_ccw_speed_duration));
 			}
 
 			//Serial.print("Writing ");
@@ -84,7 +84,7 @@ class rover_HAL {
 		float current_speed = 0.0;
 		float speed_cap = 0.2;
 		float acceleration = 1.0 / 1000.0;
-		float deceleration = 0.7 / 1000.0;
+		float deceleration = 1.0 / 1000.0;
 
     ROVER_DIRECTION last_rover_direction = ROVER_DIRECTION::STOP;
 		ROVER_DIRECTION current_rover_direction = ROVER_DIRECTION::STOP;
@@ -403,7 +403,7 @@ public:
 			ROVER_DIRECTION dir = ROVER_DIRECTION::STOP;
 			float duration = 0;
 
-			unsigned long front_distance = this->distance_sensor.get_distance();
+			//unsigned long front_distance = this->distance_sensor.get_distance();
 			//Serial.print("Front distance : ");
 			//Serial.println(front_distance);
 
@@ -702,14 +702,14 @@ void setup() {
 	// Set wheel motors properties
 	g_rover_hal.move_controller.left_motor.min_cw_speed_duration = 1520;
 	g_rover_hal.move_controller.left_motor.max_cw_speed_duration = 2000;
-	g_rover_hal.move_controller.left_motor.min_ccw_speed_duration = 1460;
-	g_rover_hal.move_controller.left_motor.max_ccw_speed_duration = 1000;
+	g_rover_hal.move_controller.left_motor.min_ccw_speed_duration = 1457;
+	g_rover_hal.move_controller.left_motor.max_ccw_speed_duration = 995;
 	g_rover_hal.move_controller.left_motor.stop_duration = 1500;
 
 	g_rover_hal.move_controller.right_motor.min_cw_speed_duration = 1520;
 	g_rover_hal.move_controller.right_motor.max_cw_speed_duration = 2000;
-	g_rover_hal.move_controller.right_motor.min_ccw_speed_duration = 1460;
-	g_rover_hal.move_controller.right_motor.max_ccw_speed_duration = 1000;
+	g_rover_hal.move_controller.right_motor.min_ccw_speed_duration = 1457;
+	g_rover_hal.move_controller.right_motor.max_ccw_speed_duration = 995;
 	g_rover_hal.move_controller.right_motor.stop_duration = 1500;
 
 	g_rover_hal.move_controller.attach();
