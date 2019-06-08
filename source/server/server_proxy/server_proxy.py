@@ -207,13 +207,15 @@ class RoverHandler:
                 move_x = abs(delta_x) > self.follow_x_threshold
                 move_y = abs(delta_y) > self.follow_y_threshold
 
-                adj_speed = round(30.0 * (abs(delta_x) / self.stream_data.width + abs(delta_y) / self.stream_data.height) / 2.0, 2)
-                if adj_speed < 1.0:
+                adj_speed_x = round(30.0 * abs(delta_x) / self.stream_data.width, 2)
+                adj_speed_y = round(30.0 * abs(delta_y) / self.stream_data.height, 2)
+
+                if adj_speed_x < 1.0 and adj_speed_y < 1.0:
                     return
 
                 if move_x or move_y:
                     print(f'following dx: {delta_x} dy:{delta_y}')
-                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': adj_speed}}
+                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': [adj_speed_x, adj_speed_y]}}
                     await send_socket_message(msg, self.writer)
 
                     # TODO change in not
@@ -242,7 +244,7 @@ class RoverHandler:
                     print(msg)
                     await send_socket_message(msg, self.writer)
 
-                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': 20.0}}
+                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': [20.0, 20.0]}}
                     await send_socket_message(msg, self.writer)
 
 

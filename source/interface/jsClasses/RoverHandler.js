@@ -2,6 +2,11 @@
 import uuid4 from '../libs/uuid.js';
 import * as consts from './Constants.js';
 
+
+
+const LINE_COLOR = "rgba(48,219,225,0.7)"
+const LINE_WIDTH = 10
+
 export default class RoverHandler {
     constructor(name, bindings, serverAddress, commandPort, streamingPort, createTab) {
         this.serverAddress = serverAddress;
@@ -463,12 +468,43 @@ export default class RoverHandler {
 	}
 
 
+    sendTrackMsg() {
+        
+        let x = Math.min(this.roi.x, this.currX)
+        let y = Math.min(this.roi.y, this.currY)
+        let w = Math.abs(this.roi.w)
+        let h = Math.abs(this.roi.h)
+
+        let msg = {
+            cmd: "track_custom",
+            params: {
+                roi: [x, y, w,h]
+            }
+
+        };
+
+        this.sendCtrlMsg(msg);
+
+        msg = {
+            cmd: "follow",
+            params: {
+                wheels : true,
+                cam : true
+            }
+
+        };
+
+        this.sendCtrlMsg(msg);
+
+    }
+
+
 	drawRect(x, y, width, height) {
 
 
 		//CONFIG FOR LINE STYLE
-		this.ctx.strokeStyle = 'rgba(48,219,225,0.7)';
-		this.ctx.lineWidth=10;
+		this.ctx.strokeStyle = LINE_COLOR;
+		this.ctx.lineWidth = LINE_WIDTH;
 
 
 		this.ctx.rect(x, y, width, height);
@@ -506,6 +542,9 @@ export default class RoverHandler {
             this.roi.y = this.currY;
         }
         if (res === 'up' || res === "out") {
+
+            this.sendTrackMsg();
+
             this.flag = false;
 
             if( this.roi.w !== 0 && this.roi.h !== 0){
@@ -515,6 +554,9 @@ export default class RoverHandler {
                 this.roi.w = 0;
                 this.roi.h = 0;
             }
+
+
+            this.overlay_ctx.clearRect(0,0, this.w, this.h);
 
         }
         if (res === 'move') {
@@ -532,10 +574,15 @@ export default class RoverHandler {
 
 
     draw_current_roi(){
+
+        this.overlay_ctx.strokeStyle = LINE_COLOR;
+        this.overlay_ctx.lineWidth= LINE_WIDTH;
+
+
         this.roi.w = this.currX-this.roi.x;
         this.roi.h = this.currY-this.roi.y;
         this.overlay_ctx.clearRect(0,0, this.w, this.h);
-        this.overlay_ctx.strokeRect(this.roi.x, this.roi.y, current_w, current_h);
+        this.overlay_ctx.strokeRect(this.roi.x, this.roi.y, this.roi.w, this.roi.h);
     }
 
 

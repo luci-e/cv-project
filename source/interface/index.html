@@ -4,7 +4,7 @@
 	<title>ZA WARUDO</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="viewport" content="user-scalable=no, initial-scale=0.8, maximum-scale=0.8"/>
+	<meta name="viewport" content="user-scalable=no, initial-scale=0.65, maximum-scale=0.65"/>
 </head>
 <body>
 
@@ -26,29 +26,37 @@
 			<div id="bottom-row" class="flex-row">
 				<div id="commands-container" class="flex-row">
 					<div id="movementControls" class="flex-column">
-							<div id="forward" class="buttonKey" data-bid="1" style="top:40px; left:95px;"></div>
-							<div id="left" class="buttonKey" data-bid="4" style="top:100px; left:35px; height:40px"></div>
-							<div id="backward" class="buttonKey" data-bid="2" style="top:140px; left:95px;"></div>
-							<div id="right" class="buttonKey" data-bid="8" style="top:100px; left:155px; height:40px"></div>
+						<div id="forward" class="buttonKey" data-bid="1" style="top:40px; left:95px;"></div>
+						<div id="left" class="buttonKey" data-bid="4" style="top:100px; left:35px; height:40px"></div>
+						<div id="backward" class="buttonKey" data-bid="2" style="top:140px; left:95px;"></div>
+						<div id="right" class="buttonKey" data-bid="8" style="top:100px; left:155px; height:40px"></div>
 
-							<div id="forwardLeft" class="buttonKey" data-bid="5" style="top:40px; left:35px;"></div>
-							<div id="forwardRight" class="buttonKey" data-bid="9" style="top:40px; left:155px;"></div>
-							<div id="backwardLeft" class="buttonKey" data-bid="6" style="top:140px; left:35px;"></div>
-							<div id="backwardRight" class="buttonKey" data-bid="10" style="top:140px; left:155px;"></div>
+						<div id="forwardLeft" class="buttonKey" data-bid="5" style="top:40px; left:35px;"></div>
+						<div id="forwardRight" class="buttonKey" data-bid="9" style="top:40px; left:155px;"></div>
+						<div id="backwardLeft" class="buttonKey" data-bid="10" style="top:140px; left:35px;"></div>
+						<div id="backwardRight" class="buttonKey" data-bid="6" style="top:140px; left:155px;"></div>
 
 					</div>
-					<div id="cameraControls" class="flex-column">
+					<div id="rightInputContainer" class="flex-row">
+
+						<div id="actionControls" class="flex-row">
+							<div id="cameraFollow" class="genericButton" style="top:10px; left:0px"></div>
+							<div id="wheelFollow" class="genericButton"></div>
+							<div id="laser" class="genericButton"></div>
+						</div>
+
+						<div id="cameraControls" class="flex-column">
 							<div id="cameraUp" class="buttonKey" data-bid="1" style="top:40px; left:95px;"></div>
 							<div id="cameraLeft" class="buttonKey" data-bid="8" style="top:100px; left:35px; height:40px;"></div>
 							<div id="cameraDown" class="buttonKey" data-bid="2" style="top:140px; left:95px;"></div>
 							<div id="cameraRight" class="buttonKey" data-bid="4" style="top:100px; left:155px; height:40px;"></div>
 							<div id="cameraCenter" class="buttonKey" data-bid="16" style="top:100px; left:95px; height:40px;"></div>
 
-
 							<div id="cameraForwardLeft" class="buttonKey" data-bid="9" style="top:40px; left:35px;"></div>
 							<div id="cameraForwardRight" class="buttonKey" data-bid="5" style="top:40px; left:155px;"></div>
-							<div id="cameraBackwardLeft" class="buttonKey" data-bid="6" style="top:140px; left:35px;"></div>
-							<div id="cameraBackwardRight" class="buttonKey" data-bid="10" style="top:140px; left:155px;"></div>
+							<div id="cameraBackwardLeft" class="buttonKey" data-bid="10" style="top:140px; left:35px;"></div>
+							<div id="cameraBackwardRight" class="buttonKey" data-bid="6" style="top:140px; left:155px;"></div>
+						</div>
 
 					</div>
 				</div>

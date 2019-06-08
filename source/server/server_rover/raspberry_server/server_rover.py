@@ -168,7 +168,7 @@ class rover_HAL:
         return ROVER_STATUS.OK
 
     def set_cam_speed(self, speed):
-        serial_command = f'cam_speed {speed}'
+        serial_command = f'cam_speed {speed[0]} {speed[1]}'
 
         serial_command += '\n'
 
@@ -356,7 +356,7 @@ class RoverRequestHandler:
         try:
             params = message['params']
 
-            speed = np.clip(float(params['speed']), 0.0, 90.0)
+            speed = np.clip(params['speed'], 0.0, 90.0)
 
             r = rover_hal.set_cam_speed(speed)
             if r == ROVER_STATUS.OK:

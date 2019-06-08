@@ -221,7 +221,8 @@ class rover_HAL {
 		float xAngle_upper_limit = 90.0, xAngle_lower_limit = -90.0;
 		float zAngle_upper_limit = 90.0, zAngle_lower_limit = -90.0;
 
-		float angular_velocity = 30 / 1000.0;
+		float angular_velocity_x = 30 / 1000.0;
+    float angular_velocity_z = 30 / 1000.0;
 
 		camera_controller() {};
 
@@ -268,24 +269,26 @@ class rover_HAL {
 
 		void update(unsigned long delta_t) {
 			if (this->current_camera_direction != CAM_DIRECTION::STOP) {
-				float delta_angle = this->angular_velocity * (float)delta_t;
+				float delta_angle_x = this->angular_velocity_x * (float)delta_t;
+        float delta_angle_z = this->angular_velocity_z * (float)delta_t;
+
 				//Serial.println(delta_angle);
 
 				if ((this->current_camera_direction & CAM_DIRECTION::UP) != CAM_DIRECTION::STOP) {
-					this->xAngle -= delta_angle;
+					this->xAngle -= delta_angle_x;
 					//Serial.println("Moving up");
 				}
 				else if ((this->current_camera_direction & CAM_DIRECTION::DOWN) != CAM_DIRECTION::STOP) {
-					this->xAngle += delta_angle;
+					this->xAngle += delta_angle_x;
 					//Serial.println("Moving down");
 				}
 
 				if ((this->current_camera_direction & CAM_DIRECTION::CW) != CAM_DIRECTION::STOP) {
-					this->zAngle -= delta_angle;
+					this->zAngle -= delta_angle_z;
 					//Serial.println("Moving cw");
 				}
 				else if ((this->current_camera_direction & CAM_DIRECTION::CCW) != CAM_DIRECTION::STOP) {
-					this->zAngle += delta_angle;
+					this->zAngle += delta_angle_z;
 					//Serial.println("Moving ccw");
 				}
 
@@ -462,15 +465,21 @@ public:
 			this->move_controller.speed_cap = speed;
 			this->move_controller.update_movement();
 		}
-        else if (cmd.equals("cam_speed")) {
-			String p_speed = command[1];
-			p_speed.toLowerCase();
+    else if (cmd.equals("cam_speed")) {
+			String p_speed_x = command[2];
+      String p_speed_z = command[1];
+			p_speed_x.toLowerCase();
+      p_speed_z.toLowerCase();
 
 			//Serial.print("Speed: ");
 			//Serial.println(p_speed);
 
-			float speed = p_speed.toFloat();
-			this->cam_controller.angular_velocity = speed / 1000.0;
+			float speed_x = p_speed_x.toFloat();
+      float speed_z = p_speed_z.toFloat();
+
+			this->cam_controller.angular_velocity_x = speed_x / 1000.0;
+      this->cam_controller.angular_velocity_z = speed_z / 1000.0;
+
 		}
 		else if (cmd.equals("move_cam")) {
 			String p_cam_dir = command[1];
@@ -519,16 +528,6 @@ public:
 
 			// Check if it's a free movement
 			this->cam_controller.current_camera_direction = dir;
-		}
-		else if (cmd.equals("angular")) {
-			String p_angle_vel = command[1];
-			p_angle_vel.toLowerCase();
-
-			//Serial.print("Angular: ");
-			//Serial.println(p_angle_vel);
-
-			float angular = p_angle_vel.toFloat();
-			this->cam_controller.angular_velocity = angular;
 		}
 		else if (cmd.equals("set_cam")) {
 
