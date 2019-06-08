@@ -2,7 +2,7 @@
 
 import * as RL from './RoverLibs.js';
 
-const SERVER_ADDRESS = 'ws://192.168.1.125';
+const SERVER_ADDRESS = 'ws://192.168.0.18';
 const COMMAND_PORT = 8888;
 const STREAMING_PORT = 8889;
 
@@ -11,7 +11,7 @@ var keys = new RL.CommandHandler("commands-container");
 var rover = new RL.RoverHandler("SHA", keys, SERVER_ADDRESS, COMMAND_PORT, STREAMING_PORT);
 //var rover = new RL.RoverHandler("SHA2", keys, SOCKET_ADDR);
 
-rover.drawRect(100, 100, 100, 100);
+
 rover.connectToServer();
 
 //
