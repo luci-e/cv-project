@@ -228,6 +228,10 @@ class RoverRequestHandler:
                      'config': rover_shared_data.data}
         await self.send_message(hello_cmd)
 
+            hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello', 'config': {'description': conf['description'],
+                                                                              'fov': conf['fov']}}
+            await self.send_message(hello_cmd)
+
     async def send_stream_info(self):
         with open(rover_shared_data.conf_file_name) as f:
             conf_string = f.read()
