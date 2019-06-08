@@ -5,6 +5,7 @@ import asyncio
 import time
 import uuid
 import atexit
+import math
 
 import websockets
 import threading
@@ -151,8 +152,8 @@ class RoverHandler:
         self.tracker = None
         self.tracking_initialized = False
 
-        self.follow_x_threshold = 75.0
-        self.follow_y_threshold = 75.0
+        self.follow_x_threshold = 5.0
+        self.follow_y_threshold = 5.0
 
         self.tracking_custom = False
         self.tracking_face = False
@@ -206,8 +207,14 @@ class RoverHandler:
                 move_x = abs(delta_x) > self.follow_x_threshold
                 move_y = abs(delta_y) > self.follow_y_threshold
 
+                adj_speed = round(30.0 * (abs(delta_x) / self.stream_data.width + abs(delta_y) / self.stream_data.height) / 2.0, 2)
+                if adj_speed < 1.0:
+                    return
+
                 if move_x or move_y:
                     print(f'following dx: {delta_x} dy:{delta_y}')
+                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': adj_speed}}
+                    await send_socket_message(msg, self.writer)
 
                     # TODO change in not
                     if self.following_camera and self.following_wheels:
@@ -225,8 +232,6 @@ class RoverHandler:
                         msg = {'cmd': 'move_cam', 'params': {'direction': move_cam}}
                         print(msg)
                         await send_socket_message(msg, self.writer)
-                        msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
-                        await send_socket_message(msg, self.writer)
 
                     elif self.following_wheels and not self.following_camera:
                         pass
@@ -236,10 +241,10 @@ class RoverHandler:
                     msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
                     print(msg)
                     await send_socket_message(msg, self.writer)
-            else:
-                msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
-                print(msg)
-                await send_socket_message(msg, self.writer)
+
+                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': 20.0}}
+                    await send_socket_message(msg, self.writer)
+
 
     def stop_tracking_roi(self):
         if self.tracking_custom or self.tracking_face:

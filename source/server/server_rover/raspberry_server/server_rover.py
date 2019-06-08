@@ -218,7 +218,7 @@ class RoverRequestHandler:
         # Define the set of sets of allowed commands and their response functions
         self.allowed_commands = {'move': self.cmd_move,
                                  'set_speed': self.cmd_set_speed,
-                                 'set_cam_speed' : self.cmd_set_cam_speed,
+                                 'set_cam_speed': self.cmd_set_cam_speed,
                                  'move_cam': self.cmd_move_camera,
                                  'set_cam': self.cmd_set_camera,
                                  'move_stop': self.cmd_move_stop,
@@ -511,6 +511,7 @@ class BroadcastOutput(object):
 
     def write(self, b):
         self.converter.stdin.write(b)
+
 
 async def main():
     global rover_shared_data
