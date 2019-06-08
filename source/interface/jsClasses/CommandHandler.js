@@ -47,8 +47,8 @@ export default class CommandHandler {
             [consts.ROVER_DIRECTION.CCW] : LEFT_ID,
             [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.LEFT]  : FORWARD_LEFT_ID,
             [consts.ROVER_DIRECTION.FORWARD | consts.ROVER_DIRECTION.RIGHT] : FORWARD_RIGHT_ID,
-            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.LEFT] : BACKWARD_LEFT_ID,
-            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.RIGHT] : BACKWARD_RIGHT_ID
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.LEFT] : BACKWARD_RIGHT_ID,
+            [consts.ROVER_DIRECTION.BACK | consts.ROVER_DIRECTION.RIGHT] : BACKWARD_LEFT_ID
         };
 
         this.cam_display_mappings = {
@@ -59,8 +59,8 @@ export default class CommandHandler {
             [consts.CAM_DIRECTION.CCW] : LEFT_ID,
             [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CW]  : FORWARD_RIGHT_ID,
             [consts.CAM_DIRECTION.UP | consts.CAM_DIRECTION.CCW] : FORWARD_LEFT_ID,
-            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CW] : BACKWARD_LEFT_ID,
-            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] : BACKWARD_RIGHT_ID
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CW] : BACKWARD_RIGHT_ID,
+            [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] : BACKWARD_LEFT_ID
         };
 
 
@@ -68,14 +68,29 @@ export default class CommandHandler {
         this.cameraKeysContainer = document.querySelector('#cameraControls');
 
 
+        this.movementControls;
+        this.cameraControls;
+
         this.speedSlider = document.getElementById("speedSlider");
         this.speedTic = document.getElementById("speedTic")
 
         this.rover = null;
+        this.lastTouched = null;
+        this.lastCameraTouched = null;
 
         this.pressed = new Array(256);
         for (let i = 0; i < 256; i++)
             this.pressed[i] = false;
+
+
+        var that = this;
+        this.mobile = false;
+        if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+            this.mobile = true;
+
+        
+ 
+        }
 
     };
 
@@ -86,8 +101,8 @@ export default class CommandHandler {
         // We Python now boyzzzz
         let self = this;
 
-        let movementControls = document.querySelectorAll('#movementControls div');
-        movementControls.forEach( function(element){
+        this.movementControls = document.querySelectorAll('#movementControls div');
+        this.movementControls.forEach( function(element){
             self.bindStartFunction(element, function(){
                 self.handleMovementControlBegin( element.dataset.bid );
             });
@@ -98,8 +113,8 @@ export default class CommandHandler {
 
         });
 
-        let cameraControls = document.querySelectorAll('#cameraControls div');
-        cameraControls.forEach( function(element){
+        this.cameraControls = document.querySelectorAll('#cameraControls div');
+        this.cameraControls.forEach( function(element){
             self.bindStartFunction(element, function(){
                 self.handleCameraControlBegin( element.dataset.bid );
             });
@@ -114,6 +129,78 @@ export default class CommandHandler {
             if(e.path[0].id != "speedTic")
                 self.moveSlider(e.offsetX);
         };
+
+
+
+        console.log(this.movementControls);
+        console.log(this.cameraControls);
+
+
+        //offsetWidth
+        //offsetHeight
+        //offsetTop
+        //offsetLeft
+
+
+        //keep track of the touch with the mobile!
+        if (this.mobile) {
+            console.log(this.movementControls);
+            console.log(this.cameraControls);
+
+
+            document.getElementById("movementControls").ontouchmove = function(e) {
+                
+                let touch = e.touches[0];
+                let button = document.elementFromPoint(touch.clientX, touch.clientY)
+                let bid = button.dataset.bid
+
+                if (self.lastTouched != bid) {
+
+                    if(self.lastTouched != null)
+                        self.handleMovementControlEnd(self.lastTouched)
+
+                    self.lastTouched = bid;
+                    self.handleMovementControlBegin(bid);
+
+                }
+                
+            }
+
+            document.getElementById("wrapper").ontouchend = function(e) {
+
+                self.handleMovementControlEnd(rover.currentDirection);
+                self.lastTouched = null;
+
+            }
+
+
+            document.getElementById("cameraControls").ontouchmove = function(e) {
+                
+                let touch = e.touches[0];
+                let button = document.elementFromPoint(touch.clientX, touch.clientY)
+                let bid = button.dataset.bid
+
+                if (self.lastCameraTouched != bid) {
+
+                    if(self.lastCameraTouched != null)
+                        self.handleCameraControlEnd(self.lastCameraTouched);
+
+                    self.lastCameraTouched = bid;
+                    self.handleCameraControlBegin(bid);
+
+                }
+                
+            }
+
+            document.getElementById("wrapper").ontouchend = function(e) {
+
+                self.handleCameraControlEnd(rover.currentCamDirection);
+                self.lastCameraTouched = null;
+
+            }
+
+        }
+
 
         document.body.onkeydown = this.handleKeyPress.bind(this);
         document.body.onkeyup = this.handleKeyRelease.bind(this);
@@ -207,47 +294,50 @@ export default class CommandHandler {
 
     bindStartFunction(ctrl, action) {
 
-        ctrl.onmousedown = function () {
-            return action();
-        };
-
-        ctrl.onmouseover = function(event){
-            if( event.button == 0 && event.buttons ){
+        if(this.mobile) {
+           
+            ctrl.ontouchstart = function () {
                 return action();
-            }
-        };
+            };
 
-        ctrl.ontouchstart = function () {
-            ctrl.onmouseout = function () {
-                return false;
-            };
+        } else {
+
             ctrl.onmousedown = function () {
-                return false;
+                return action();
             };
-            return action();
-        };
+
+            ctrl.onmouseover = function(event){
+                if( event.button == 0 && event.buttons ){
+                    return action();
+                }
+            };
+        }
+
 
     }
 
     bindEndFunction(ctrl, action) {
         var rover = this.rover;
 
-        ctrl.onmouseup= function () {
-            return action();
-        };
+        if (this.mobile) {
 
-        ctrl.onmouseleave = function(event){
-            if( event.button == 0 && event.buttons ){
+            ctrl.ontouchend = function () {          
                 return action();
-            }
-        };
+            };
 
-        ctrl.onmouseup = function () {
-            return action();
-        };
-        ctrl.ontouchend = function () {
-            return action();
-        };
+        } else {
+
+            ctrl.onmouseup = function () {
+                console.log("HELLO HERE");
+                return action();
+            };
+
+            ctrl.onmouseleave = function(event){
+                if( event.button == 0 && event.buttons ){
+                    return action();
+                }
+            };
+        }
 
     }
 
@@ -262,8 +352,35 @@ export default class CommandHandler {
         this.speedTic.style.left=offset+"px";
     }
 
-}
 
+
+    //offsetWidth
+    //offsetHeight
+    //offsetTop
+    //offsetLeft
+
+    /*getButtonHovered(x, y) {
+
+
+        document.getElementById("cameraControls").innerHTML =  x+" "+y;
+
+        let len = this.movementControls.length;
+
+        for(let i=0; i<len; i++) {
+
+            let div = this.movementControls[i];
+            let minX = div.offsetLeft, minY = div.offsetTop;
+            let w = div.offsetWidth, h = div.offsetHeight;
+
+
+            if (( x - minX < w ) && ( y - minY < h)) {
+                this.cameraControls.innerHTML =  x+" "+y+"\nHELLO GENERAL DIVOBI: "+this.movementControls[i]
+            }
+
+        }
+    }*/
+
+}
 
 /*this.up.ontouchstart = function() {
 	that.setButtonDisplay(UP_ID);

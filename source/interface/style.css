@@ -93,8 +93,6 @@ body {
 }
 
 .buttonKey {
-	
-	border:0px solid black;
 
 	position:absolute;
 	width:60px;
@@ -122,6 +120,21 @@ body {
 	
 }
 
+#rightInputContainer {
+	flex-direction:right;
+}
+
+#actionControls {
+	margin-left: auto;
+	align-items:right;
+	flex-basis:420px;
+	min-width:420px;
+	max-width:420px;
+	width:420px;
+	height:241px;
+	position:relative;
+}
+
 #cameraControls {
 	align-items: center;
 	flex-basis:241px;
@@ -131,6 +144,16 @@ body {
 	height:241px;
 	background: url("img/arrowkeys.png") 0px 0px;
 	position: relative;
+}
+
+
+.genericButton {
+	width: 140px;
+	height: 140px;
+	background: url("img/genericButton.png") 0px 0px;
+	margin-top:auto;
+	margin-bottom:auto;
+	
 }
 
 #top-row {
@@ -174,4 +197,9 @@ body {
 	margin-top:-27px;
 	left:100px;
 	background:url("img/speedTic.png");
+}
+
+
+#videoOutput {
+	border: 1px solid white;
 }
