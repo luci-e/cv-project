@@ -167,6 +167,14 @@ class rover_HAL:
         self.send_serial_command(bytes(serial_command, 'ascii'))
         return ROVER_STATUS.OK
 
+    def set_cam_speed(self, speed):
+        serial_command = f'cam_speed {speed}'
+
+        serial_command += '\n'
+
+        self.send_serial_command(bytes(serial_command, 'ascii'))
+        return ROVER_STATUS.OK
+
 
 # >>>>>>>>>> GLOBAL VARIABLES <<<<<<<<<<#
 
@@ -210,6 +218,7 @@ class RoverRequestHandler:
         # Define the set of sets of allowed commands and their response functions
         self.allowed_commands = {'move': self.cmd_move,
                                  'set_speed': self.cmd_set_speed,
+                                 'set_cam_speed' : self.cmd_set_cam_speed,
                                  'move_cam': self.cmd_move_camera,
                                  'set_cam': self.cmd_set_camera,
                                  'move_stop': self.cmd_move_stop,
@@ -226,6 +235,7 @@ class RoverRequestHandler:
 
         hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello',
                      'config': rover_shared_data.data}
+
         await self.send_message(hello_cmd)
 
     async def send_stream_info(self):
@@ -328,6 +338,27 @@ class RoverRequestHandler:
             speed = np.clip(float(params['speed']), 0.0, 1.0)
 
             r = rover_hal.set_speed(speed)
+            if r == ROVER_STATUS.OK:
+                await self.success_response()
+            else:
+                await self.error_response("blocked")
+
+
+        except Exception as e:
+            print(type(e))  # the exception instance
+            print(e.args)  # arguments stored in .args
+            print(e)
+            await self.error_response("bad_params")
+
+    async def cmd_set_cam_speed(self, message):
+        print('Processing cam speed command')
+
+        try:
+            params = message['params']
+
+            speed = np.clip(float(params['speed']), 0.0, 90.0)
+
+            r = rover_hal.set_cam_speed(speed)
             if r == ROVER_STATUS.OK:
                 await self.success_response()
             else:
@@ -461,7 +492,7 @@ class BroadcastOutput(object):
         self.command = f'ffmpeg \
 -f v4l2 -input_format yuyv422 -s {rover_shared_data.data["stream_size"][0]}x{rover_shared_data.data["stream_size"][1]} \
  -r 30 -i /dev/video0 -an \
--vcodec mpeg2video -q:v 15  \
+-vcodec mpeg2video -q:v 7  \
 -map 0:0 -threads 4 -an \
 -sdp_file {rover_shared_data.conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'

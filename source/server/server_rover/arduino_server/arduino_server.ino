@@ -462,6 +462,16 @@ public:
 			this->move_controller.speed_cap = speed;
 			this->move_controller.update_movement();
 		}
+        else if (cmd.equals("cam_speed")) {
+			String p_speed = command[1];
+			p_speed.toLowerCase();
+
+			//Serial.print("Speed: ");
+			//Serial.println(p_speed);
+
+			float speed = p_speed.toFloat();
+			this->cam_controller.angular_velocity = speed / 1000.0;
+		}
 		else if (cmd.equals("move_cam")) {
 			String p_cam_dir = command[1];
 			p_cam_dir.toLowerCase();

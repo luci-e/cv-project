@@ -33,6 +33,7 @@ class StreamData():
 
 server_data = ServerData()
 
+
 class CVHelper(object):
 
     def __init__(self):
@@ -150,6 +151,9 @@ class RoverHandler:
         self.tracker = None
         self.tracking_initialized = False
 
+        self.follow_x_threshold = 75.0
+        self.follow_y_threshold = 75.0
+
         self.tracking_custom = False
         self.tracking_face = False
         self.following_wheels = False
@@ -189,22 +193,53 @@ class RoverHandler:
     def box_centre(box):
         return box[0] + box[2] / 2, box[1] + box[3] / 2
 
-    def follow_roi(self):
+    async def follow_roi(self):
         if self.following_wheels or self.following_camera:
-            if self.box is not None:
+            if self.success:
+                move_cmd = []
+                move_cam = []
 
                 centre = self.box_centre(self.box)
-                delta_x = centre[0] - self.stream_data.width/2
-                delta_y = centre[1] - self.stream_data.height/2
+                delta_x = centre[0] - self.stream_data.width / 2
+                delta_y = centre[1] - self.stream_data.height / 2
 
-                print(f'following dx: {delta_x} dy:{delta_y}')
+                move_x = abs(delta_x) > self.follow_x_threshold
+                move_y = abs(delta_y) > self.follow_y_threshold
 
-                if self.following_camera and not self.following_wheels:
-                    pass
-                elif self.following_wheels and not self.following_camera:
-                    pass
-                elif self.following_wheels and self.following_camera:
-                    pass
+                if move_x or move_y:
+                    print(f'following dx: {delta_x} dy:{delta_y}')
+
+                    # TODO change in not
+                    if self.following_camera and self.following_wheels:
+                        if move_x:
+                            if delta_x > 0:
+                                move_cam.append('cw')
+                            else:
+                                move_cam.append('ccw')
+                        if move_y:
+                            if delta_y > 0:
+                                move_cam.append('down')
+                            else:
+                                move_cam.append('up')
+
+                        msg = {'cmd': 'move_cam', 'params': {'direction': move_cam}}
+                        print(msg)
+                        await send_socket_message(msg, self.writer)
+                        msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
+                        await send_socket_message(msg, self.writer)
+
+                    elif self.following_wheels and not self.following_camera:
+                        pass
+                    elif self.following_wheels and self.following_camera:
+                        pass
+                else:
+                    msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
+                    print(msg)
+                    await send_socket_message(msg, self.writer)
+            else:
+                msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
+                print(msg)
+                await send_socket_message(msg, self.writer)
 
     def stop_tracking_roi(self):
         if self.tracking_custom or self.tracking_face:
@@ -247,14 +282,14 @@ class RoverHandler:
         self.tracking_face = True
         self.tracking_initialized = False
 
-    def cmd_start_following(self, cmd):
+    async def cmd_start_following(self, cmd):
         params = cmd['params']
         self.start_following(params['wheels'], params['cam'])
 
-    def do_tracking(self, frame):
+    async def do_tracking(self, frame):
         if self.tracking_initialized:
             self.track_roi(frame)
-            self.follow_roi()
+            await self.follow_roi()
         else:
             if self.tracking_face:
                 faces = self.cv_helper.detect_faces(frame)
@@ -285,7 +320,7 @@ class RoverHandler:
                 await asyncio.sleep(1.0 / self.stream_data.framerate)
                 grabbed, frame = self.cap.read()
                 if grabbed:
-                    self.do_tracking(frame)
+                    await self.do_tracking(frame)
                     self.converter.stdin.write(frame.tostring())
                     await self.converter.stdin.drain()
 
@@ -342,7 +377,7 @@ class RoverHandler:
                 await send_websocket_message({'msg': 'ok'}, ws)
             await asyncio.sleep(0.001)
 
-        except :
+        except:
             print('Removing ctrl socket from rover')
             del self.rover_clients[client_id]
 
@@ -445,8 +480,11 @@ class ProxyServer(object):
 
         print(start_msg)
 
-        await websocket.send(stream_data.jsmpeg_header.pack(stream_data.jsmpeg_magic, stream_data.width,
-                                                            stream_data.height))
+        rover = self.rover_handlers[connect_cmd['rover_id']]
+
+        await websocket.send(
+            rover.stream_data.jsmpeg_header.pack(rover.stream_data.jsmpeg_magic, rover.stream_data.width,
+                                                 rover.stream_data.height))
 
         self.rover_handlers[connect_cmd['rover_id']].add_stream_client(connect_cmd['client_id'], websocket)
 
@@ -480,7 +518,8 @@ class ProxyServer(object):
 async def send_socket_message(message, writer):
     try:
         encoded_msg = json.dumps(message) + '\n'
-        await writer.write(encoded_msg.encode())
+        writer.write(encoded_msg.encode())
+        await writer.drain()
     except Exception as e:
         print(e)
 
