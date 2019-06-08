@@ -54,12 +54,14 @@ class ROVER_STATUS(Flag):
 # class. Although not enforced, this is a singleton.
 class RoverData:
     def __init__(self):
+        self.rover_conf = 'rover_conf.json'
+        self.conf_file_name = 'conf.sdp'
         self.cmd_port = 6666
         self.stream_port = 7777
-        self.conf_file_name = 'conf.sdp'
         self.server_address = ''
         self.serial_port = ''
         self.camera_no = 0
+        self.data = None
 
 
 # The rover Hardware Abstraction Layer handles all requests that must be handled
@@ -76,8 +78,8 @@ class rover_HAL:
     def send_serial_command(self, command):
         print(f'sending {command}')
         self.ser.write(command)
-        line = self.ser.readline()
-        print(f'Received {line}')
+        # line = self.ser.readline()
+        # print(f'Received {line}')
 
     def is_blocked(self):
         pass
@@ -222,7 +224,8 @@ class RoverRequestHandler:
         self.reader, self.writer = await asyncio.open_connection(rover_shared_data.server_address,
                                                                  rover_shared_data.cmd_port)
 
-        hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello', 'description': 'I\'m a little rover!'}
+        hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello',
+                     'config': rover_shared_data.data}
         await self.send_message(hello_cmd)
 
     async def send_stream_info(self):
@@ -456,7 +459,8 @@ class BroadcastOutput(object):
     def __init__(self):
         print('Spawning background conversion process')
         self.command = f'ffmpeg \
--f v4l2 -input_format yuyv422 -s 640x360 -r 30 -i /dev/video0 -an \
+-f v4l2 -input_format yuyv422 -s {rover_shared_data.data["stream_size"][0]}x{rover_shared_data.data["stream_size"][1]} \
+ -r 30 -i /dev/video0 -an \
 -vcodec mpeg2video -q:v 15  \
 -map 0:0 -threads 4 -an \
 -sdp_file {rover_shared_data.conf_file_name} \
@@ -476,16 +480,6 @@ class BroadcastOutput(object):
 
     def write(self, b):
         self.converter.stdin.write(b)
-
-
-class USBCamera:
-    def __init__(self, camera_no):
-        self.cam_no = camera_no
-        self.cap = cv2.VideoCapture(self.cam_no)
-        self.resolution = (self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.framerate = self.cap.get(cv2.CAP_PROP_FPS)
-        self.cap.release()
-
 
 async def main():
     global rover_shared_data
@@ -508,12 +502,14 @@ async def main():
     rover_shared_data.camera_no = args.camera_no
     rover_shared_data.server_address = args.server_address
 
+    with open(rover_shared_data.rover_conf) as f:
+        rover_shared_data.data = json.load(f)
+
     rover_hal.open_serial()
 
     # logger = logging.getLogger('websockets')
     # logger.setLevel(logging.DEBUG)
     # logger.addHandler(logging.StreamHandler())
-
 
     print('Initializing broadcast thread')
     output = BroadcastOutput()
