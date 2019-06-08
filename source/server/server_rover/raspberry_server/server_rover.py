@@ -54,6 +54,7 @@ class ROVER_STATUS(Flag):
 # class. Although not enforced, this is a singleton.
 class RoverData:
     def __init__(self):
+        self.rover_conf = 'rover_conf.json'
         self.cmd_port = 6666
         self.stream_port = 7777
         self.conf_file_name = 'conf.sdp'
@@ -222,8 +223,12 @@ class RoverRequestHandler:
         self.reader, self.writer = await asyncio.open_connection(rover_shared_data.server_address,
                                                                  rover_shared_data.cmd_port)
 
-        hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello', 'description': 'I\'m a little rover!'}
-        await self.send_message(hello_cmd)
+        with open(rover_shared_data.rover_conf) as f:
+            conf = json.load(f)
+
+            hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello', 'config': {'description': conf['description'],
+                                                                              'fov': conf['fov']}}
+            await self.send_message(hello_cmd)
 
     async def send_stream_info(self):
         with open(rover_shared_data.conf_file_name) as f:
@@ -513,7 +518,6 @@ async def main():
     # logger = logging.getLogger('websockets')
     # logger.setLevel(logging.DEBUG)
     # logger.addHandler(logging.StreamHandler())
-
 
     print('Initializing broadcast thread')
     output = BroadcastOutput()

@@ -65,6 +65,8 @@ class CVHelper(object):
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
+        return faces
+
 
 shared_cv_helper = CVHelper()
 
@@ -122,7 +124,9 @@ class RoverHandler:
 
     def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='mosse'):
         self.rover_id = hello_cmd['rover_id']
-        self.description = hello_cmd['description']
+        self.rover_config = hello_cmd['config']
+        self.description = self.rover_config['description']
+        self.fov = self.rover_config['fov']
         self.stream_path = f'{self.rover_id}.sdp'
         self.cap = None
         self.converter = None
@@ -133,11 +137,14 @@ class RoverHandler:
         self.stream_clients = dict()
 
         self.server_commands = {
-            'track': self.track_roi
+            'track_custom': self.cmd_track_custom,
+            'track_faces': self.cmd_track_faces,
+            'follow': self.cmd_start_following
         }
 
         self.init_bb = None
         self.tracker = None
+        self.tracking_initialized = False
 
         self.tracking_custom = False
         self.tracking_face = False
@@ -155,9 +162,13 @@ class RoverHandler:
         self.tracker_name = tracker_name
         self.tracker = self.cv_helper.object_trackers[self.tracker_name]()
 
-    def init_tracking_roi(self, frame, roi):
-        self.init_bb = roi
-        self.tracker.init(frame, roi)
+    def init_tracking_roi(self, frame):
+        if self.tracker is not None:
+            self.tracker.clear()
+
+        self.tracker = self.cv_helper.object_trackers[self.tracker_name]()
+        self.tracker.init(frame, self.init_bb)
+        self.tracking_initialized = True
 
     def track_roi(self, frame):
         (success, box) = self.tracker.update(frame)
@@ -168,7 +179,15 @@ class RoverHandler:
             cv2.rectangle(frame, (x, y), (x + w, y + h),
                           (0, 255, 0), 2)
 
-    async def stop_tracking_roi(self):
+    def follow_roi(self):
+        if self.following_camera and not self.following_wheels:
+            pass
+        elif self.following_wheels and not self.following_camera:
+            pass
+        elif self.following_wheels and self.following_camera:
+            pass
+
+    def stop_tracking_roi(self):
         if self.tracking_custom or self.tracking_face:
             self.tracking_face = False
             self.tracking_custom = False
@@ -177,24 +196,56 @@ class RoverHandler:
 
             self.init_bb = None
 
-    async def stop_tracking_custom(self):
+    def stop_tracking_custom(self):
         self.tracking_custom = False
         self.following_wheels = False
         self.following_camera = False
 
-    async def stop_tracking_face(self):
+    def stop_tracking_face(self):
         self.tracking_face = False
         self.following_wheels = False
         self.following_camera = False
 
-    async def start_following(self, wheels=False, camera=False):
+    def start_following(self, wheels=False, camera=False):
         if self.tracking_custom ^ self.tracking_face:
             self.following_wheels = wheels
             self.following_camera = camera
 
-    async def stop_following(self):
+    def stop_following(self):
         self.following_wheels = False
         self.following_camera = False
+
+    async def cmd_track_custom(self, cmd):
+        params = cmd['params']
+        roi = params['roi']
+
+        if roi[0] > 0 and roi[1] > 0 and roi[2] > 0 and roi[3] > 0:
+            self.init_bb = tuple(roi)
+            self.tracking_custom = True
+            self.tracking_initialized = False
+
+    async def cmd_track_faces(self, cmd):
+        self.tracking_face = True
+        self.tracking_initialized = False
+
+    def cmd_start_following(self, cmd):
+        params = cmd['params']
+        self.start_following(params['wheels'], params['cam'])
+
+    def do_tracking(self, frame):
+        if self.tracking_initialized:
+            self.track_roi(frame)
+            self.follow_roi()
+        else:
+            if self.tracking_face:
+                faces = self.cv_helper.detect_faces(frame)
+                if len(faces) > 0:
+                    print(f'Initializing ')
+                    self.init_bb = tuple(faces[0])
+                    self.init_tracking_roi(frame)
+            elif self.tracking_custom:
+                print(f'Initializing ROI')
+                self.init_tracking_roi(frame)
 
     async def start_conversion(self):
         print('Spawning background conversion process')
@@ -215,17 +266,7 @@ class RoverHandler:
                 await asyncio.sleep(1.0 / stream_data.framerate)
                 grabbed, frame = self.cap.read()
                 if grabbed:
-
-                    # TODO
-
-                    if self.init_bb is None:
-                        self.init_tracking_roi(frame, (270, 130, 100, 100))
-                    else:
-                        self.track_roi(frame)
-
-                    # TODO
-
-                    #self.cv_helper.detect_faces(frame)
+                    self.do_tracking(frame)
                     self.converter.stdin.write(frame.tostring())
                     await self.converter.stdin.drain()
 
@@ -261,7 +302,7 @@ class RoverHandler:
 
     async def process_server_command(self, message):
         print(f'Received server command')
-        await self.server_commands[message['cmd']]()
+        await self.server_commands[message['cmd']](message)
 
     async def forward_client_cmds(self, client_id):
         ws = self.rover_clients[client_id]
@@ -282,12 +323,15 @@ class RoverHandler:
                 await send_websocket_message({'msg': 'ok'}, ws)
             await asyncio.sleep(0.001)
 
-        except:
+        except :
             print('Removing ctrl socket from rover')
             del self.rover_clients[client_id]
 
-        print('Removing ctrl socket from rover')
-        del self.rover_clients[client_id]
+        try:
+            print('Removing ctrl socket from rover')
+            del self.rover_clients[client_id]
+        except:
+            pass
 
     def add_rover_client(self, client_id, websocket):
         print(f'Rover client {client_id} added to rover {self.rover_id}')

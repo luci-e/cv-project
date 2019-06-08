@@ -7,7 +7,7 @@ import atexit
 
 rover_list = None
 
-server_address = 'localhost'
+server_address = '192.168.0.14'
 e_ctrl_port = 8888
 stream_port = 7778
 client_id = uuid.uuid1()
@@ -82,7 +82,7 @@ async def hello(websocket):
 async def control_test():
     global rover_list
 
-    async with websockets.connect(f'ws://localhost:{e_ctrl_port}') as websocket:
+    async with websockets.connect(f'ws://{server_address}:{e_ctrl_port}') as websocket:
 
         hello_msg = {
             "client_id": str(client_id),
