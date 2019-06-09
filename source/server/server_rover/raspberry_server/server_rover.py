@@ -54,7 +54,7 @@ class ROVER_STATUS(Flag):
 # class. Although not enforced, this is a singleton.
 class RoverData:
     def __init__(self):
-        self.rover_conf = 'rover_conf.json'
+        self.rover_data_file = 'rover_data.json'
         self.conf_file_name = 'conf.sdp'
         self.cmd_port = 6666
         self.stream_port = 7777
@@ -234,12 +234,12 @@ class RoverRequestHandler:
                                                                  rover_shared_data.cmd_port)
 
         hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello',
-                     'config': rover_shared_data.data}
+                     'rover_data': rover_shared_data.data}
 
         await self.send_message(hello_cmd)
 
     async def send_stream_info(self):
-        with open(rover_shared_data.conf_file_name) as f:
+        with open(rover_shared_data.rover_data_file) as f:
             conf_string = f.read()
             set_stream_cmd = {'rover_id': str(self.id), 'cmd': 'set_stream', 'conf': conf_string}
             await self.send_message(set_stream_cmd)
@@ -534,10 +534,10 @@ async def main():
     rover_shared_data.camera_no = args.camera_no
     rover_shared_data.server_address = args.server_address
 
-    with open(rover_shared_data.rover_conf) as f:
+    with open(rover_shared_data.rover_data_file) as f:
         rover_shared_data.data = json.load(f)
 
-    rover_hal.open_serial()
+    # rover_hal.open_serial()
 
     # logger = logging.getLogger('websockets')
     # logger.setLevel(logging.DEBUG)

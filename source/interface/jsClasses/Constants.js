@@ -35,5 +35,11 @@ export const CAM_DIRECTION = {
 	CLR: 16
 };
 
+export const FOLLOW_STATUS = {
+	STOP : 0,
+	WHEELS : 1,
+	GIMBAL : 2
+};
+
 export const ALLOWED_CAM_DIRECTIONS =  new Set([0, 1, 2, 4, 8, 5, 9, 6, 10]);
 

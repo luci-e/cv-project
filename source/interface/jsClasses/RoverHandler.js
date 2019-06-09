@@ -1,6 +1,7 @@
 'use strict';
 import uuid4 from '../libs/uuid.js';
 import * as consts from './Constants.js';
+import {FOLLOW_STATUS} from "./Constants";
 
 
 
@@ -15,6 +16,7 @@ export default class RoverHandler {
 
         this.rovers = [];
         this.currentRoverId = null;
+        this.roverData = null
 
         this.cmd_socket = null;
         this.stream_socket = null;
@@ -54,7 +56,9 @@ export default class RoverHandler {
         this.w = this.overlay_canvas.width;
         this.h = this.overlay_canvas.height;
 
-        this.init_overlay_canvas();
+        this.follow_status = consts.FOLLOW_STATUS.STOP;
+
+        this.initOverlayCanvas();
 
     }
 
@@ -158,6 +162,9 @@ export default class RoverHandler {
 
                     //TODO: let the user choose the rover to which to connect to
                     this.currentRoverId = message['rovers'][0]['rover_id'];
+
+                    this.roverData = message['rovers'][0]['rover_data'];
+                    console.log(this.roverData);
 
                     let connect_cmd = {
                         "client_id": this.id,
@@ -468,6 +475,10 @@ export default class RoverHandler {
 	}
 
 
+
+	cycleFollowStatus(){}
+
+
     sendTrackMsg() {
         
         let x = Math.min(this.roi.x, this.currX)
@@ -512,24 +523,24 @@ export default class RoverHandler {
 
 	}
 
-	init_overlay_canvas(){
+	initOverlayCanvas(){
 
         this.overlay_canvas.addEventListener("mousemove", function (e) {
-            this.find_xy('move', e);
+            this.findXY('move', e);
         }.bind(this), false);
         this.overlay_canvas.addEventListener("mousedown", function (e) {
-            this.find_xy('down', e);
+            this.findXY('down', e);
         }.bind(this), false);
         this.overlay_canvas.addEventListener("mouseup", function (e) {
-            this.find_xy('up', e);
+            this.findXY('up', e);
         }.bind(this), false);
         this.overlay_canvas.addEventListener("mouseout", function (e) {
-            this.find_xy('out', e);
+            this.findXY('out', e);
         }.bind(this), false);
 
     }
 
-    find_xy(res, e) {
+    findXY(res, e) {
         if (res === 'down') {
             this.prevX = this.currX;
             this.prevY = this.currY;
