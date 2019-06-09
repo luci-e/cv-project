@@ -6,6 +6,7 @@ import time
 import uuid
 import atexit
 import math
+import numpy as np
 
 import websockets
 import threading
@@ -16,14 +17,42 @@ import cv2
 STREAM_BLOCKSIZE = 256
 
 
-class ServerData():
+class RingBuffer(object):
+    def __init__(self, size, initializer=None):
+        """Initialization"""
+        self.index = 0
+        self.size = size
+        self.data = list(initializer for i in range(self.size))
+
+    def append(self, value):
+        """Append an element"""
+        self.data[self.index] = value
+        self.index = (self.index + 1) % self.size
+
+    def set_all(self, value):
+        self.data = list(value for i in range(self.size))
+        self.index = 0
+
+    def __getitem__(self, key):
+        """Get element by index, relative to the current index"""
+        if len(self.data) == self.size:
+            return self.data[(key + self.index) % self.size]
+        else:
+            return self.data[key]
+
+    def __repr__(self):
+        """Return string representation"""
+        return self.data.__repr__() + ' (' + str(len(self.data)) + ' items)'
+
+
+class ServerData:
     def __init__(self):
         self.stream_port = 8889
         self.ctrl_port = 6666
         self.e_ctrl_port = 8888
 
 
-class StreamData():
+class StreamData:
     def __init__(self):
         self.width = 640
         self.height = 360
@@ -123,16 +152,19 @@ class VideoCaptureTreading:
 
 class RoverHandler:
 
-    def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='mosse'):
+    def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='csrt'):
         self.rover_id = hello_cmd['rover_id']
-        self.rover_config = hello_cmd['config']
-        self.description = self.rover_config['description']
-        self.fov = self.rover_config['fov']
+        self.rover_data = hello_cmd['rover_data']
+        self.description = self.rover_data['description']
+        self.fov = self.rover_data['fov']
+
+        self.has_wheels = 'wheels' in self.rover_data['mobility']
+        self.has_gimbal = 'gimbal' in self.rover_data['mobility']
 
         self.stream_path = f'{self.rover_id}.sdp'
         self.stream_data = StreamData()
-        self.stream_data.width = self.rover_config['stream_size'][0]
-        self.stream_data.height = self.rover_config['stream_size'][1]
+        self.stream_data.width = self.rover_data['stream_size'][0]
+        self.stream_data.height = self.rover_data['stream_size'][1]
 
         self.cap = None
         self.converter = None
@@ -154,6 +186,10 @@ class RoverHandler:
 
         self.follow_x_threshold = 5.0
         self.follow_y_threshold = 5.0
+        self.last_distances = RingBuffer(5, 99999)
+        self.distance_threshold = 0.0
+        self.stop_sent = False
+        self.wiggle_dampener = 30.0
 
         self.tracking_custom = False
         self.tracking_face = False
@@ -194,6 +230,9 @@ class RoverHandler:
     def box_centre(box):
         return box[0] + box[2] / 2, box[1] + box[3] / 2
 
+    def reset_distance(self):
+        self.last_distances.set_all(9999);
+
     async def follow_roi(self):
         if self.following_wheels or self.following_camera:
             if self.success:
@@ -203,50 +242,60 @@ class RoverHandler:
                 centre = self.box_centre(self.box)
                 delta_x = centre[0] - self.stream_data.width / 2
                 delta_y = centre[1] - self.stream_data.height / 2
+                dist = math.sqrt(delta_x ** 2 + delta_y ** 2)
 
                 move_x = abs(delta_x) > self.follow_x_threshold
                 move_y = abs(delta_y) > self.follow_y_threshold
 
-                adj_speed_x = round(30.0 * abs(delta_x) / self.stream_data.width, 2)
-                adj_speed_y = round(30.0 * abs(delta_y) / self.stream_data.height, 2)
+                adj_speed_x = round(180.0 * (abs(delta_x) / self.stream_data.width) ** 1.5, 2)
+                adj_speed_y = round(180.0 * (abs(delta_y) / self.stream_data.height) ** 1.5, 2)
+                # print(f'Dist: {dist}')
 
-                if adj_speed_x < 1.0 and adj_speed_y < 1.0:
-                    return
+                if dist > self.distance_threshold:
+                    self.last_distances.append(dist)
+                    # print(f'Avg : {np.average(self.last_distances.data)}')
+                    # print(f'Stop sent at last cycle: {self.stop_sent}')
 
-                if move_x or move_y:
-                    print(f'following dx: {delta_x} dy:{delta_y}')
-                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': [adj_speed_x, adj_speed_y]}}
-                    await send_socket_message(msg, self.writer)
+                    if np.average(self.last_distances.data) < self.wiggle_dampener:
+                        if not self.stop_sent:
+                            msg = {'cmd': 'move_stop', 'params': {'motors': ['camera']}}
+                            print(msg)
+                            self.stop_sent = True
+                            await send_socket_message(msg, self.writer)
+                            #
+                            # msg = {'cmd': 'set_cam_speed', 'params': {'speed': [20.0, 20.0]}}
+                            # await send_socket_message(msg, self.writer)
+                    else:
+                        self.stop_sent = False
+                        # print(f'following dx: {delta_x} dy:{delta_y}')
 
-                    # TODO change in not
-                    if self.following_camera and self.following_wheels:
-                        if move_x:
-                            if delta_x > 0:
-                                move_cam.append('cw')
-                            else:
-                                move_cam.append('ccw')
-                        if move_y:
-                            if delta_y > 0:
-                                move_cam.append('down')
-                            else:
-                                move_cam.append('up')
+                        if adj_speed_y > 0.2 and adj_speed_x > 0.2:
+                            msg = {'cmd': 'set_cam_speed', 'params': {'speed': [adj_speed_x, adj_speed_y]}}
+                            print(msg)
+                            await send_socket_message(msg, self.writer)
 
-                        msg = {'cmd': 'move_cam', 'params': {'direction': move_cam}}
-                        print(msg)
-                        await send_socket_message(msg, self.writer)
+                        # TODO change in not
+                        if self.following_camera and self.following_wheels:
+                            if move_x:
+                                if delta_x > 0:
+                                    move_cam.append('cw')
+                                else:
+                                    move_cam.append('ccw')
+                            if move_y:
+                                if delta_y > 0:
+                                    move_cam.append('down')
+                                else:
+                                    move_cam.append('up')
 
-                    elif self.following_wheels and not self.following_camera:
-                        pass
-                    elif self.following_wheels and self.following_camera:
-                        pass
-                else:
-                    msg = {'cmd': 'move_stop', 'params': {'motors': 'camera'}}
-                    print(msg)
-                    await send_socket_message(msg, self.writer)
+                            if move_cam:
+                                msg = {'cmd': 'move_cam', 'params': {'direction': move_cam}}
+                                print(msg)
+                                await send_socket_message(msg, self.writer)
 
-                    msg = {'cmd': 'set_cam_speed', 'params': {'speed': [20.0, 20.0]}}
-                    await send_socket_message(msg, self.writer)
-
+                        elif self.following_wheels and not self.following_camera:
+                            pass
+                        elif self.following_wheels and self.following_camera:
+                            pass
 
     def stop_tracking_roi(self):
         if self.tracking_custom or self.tracking_face:
@@ -374,6 +423,8 @@ class RoverHandler:
                 print(repr(message))
                 msg = json.loads(message)
 
+                self.reset_distance()
+
                 if msg['cmd'] in self.server_commands:
                     asyncio.create_task(self.process_server_command(msg))
                     await send_websocket_message({'msg': 'ok'}, ws)
@@ -467,7 +518,7 @@ class ProxyServer(object):
 
     async def do_list_command(self, websocket):
         rovers_list = list(
-            map(lambda r: {'rover_id': r.rover_id, 'description': r.description}, self.rover_handlers.values()))
+            map(lambda r: {'rover_id': r.rover_id, 'rover_data': r.rover_config}, self.rover_handlers.values()))
 
         list_response = {'server_id': str(self.id), 'rovers': rovers_list}
 

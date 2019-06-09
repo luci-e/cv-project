@@ -54,8 +54,8 @@ class ROVER_STATUS(Flag):
 # class. Although not enforced, this is a singleton.
 class RoverData:
     def __init__(self):
-        self.rover_conf = 'rover_conf.json'
-        self.conf_file_name = 'conf.sdp'
+        self.rover_data_file = 'rover_data.json'
+        self.stream_conf_file_name = 'conf.sdp'
         self.cmd_port = 6666
         self.stream_port = 7777
         self.server_address = ''
@@ -234,12 +234,12 @@ class RoverRequestHandler:
                                                                  rover_shared_data.cmd_port)
 
         hello_cmd = {'rover_id': str(self.id), 'cmd': 'hello',
-                     'config': rover_shared_data.data}
+                     'rover_data': rover_shared_data.data}
 
         await self.send_message(hello_cmd)
 
     async def send_stream_info(self):
-        with open(rover_shared_data.conf_file_name) as f:
+        with open(rover_shared_data.stream_conf_file_name) as f:
             conf_string = f.read()
             set_stream_cmd = {'rover_id': str(self.id), 'cmd': 'set_stream', 'conf': conf_string}
             await self.send_message(set_stream_cmd)
@@ -494,7 +494,7 @@ class BroadcastOutput(object):
  -r 30 -i /dev/video0 -an \
 -vcodec mpeg2video -q:v 7  \
 -map 0:0 -threads 4 -an \
--sdp_file {rover_shared_data.conf_file_name} \
+-sdp_file {rover_shared_data.stream_conf_file_name} \
 -f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
 
         print(self.command)
@@ -534,7 +534,7 @@ async def main():
     rover_shared_data.camera_no = args.camera_no
     rover_shared_data.server_address = args.server_address
 
-    with open(rover_shared_data.rover_conf) as f:
+    with open(rover_shared_data.rover_data_file) as f:
         rover_shared_data.data = json.load(f)
 
     rover_hal.open_serial()

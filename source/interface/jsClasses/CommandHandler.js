@@ -32,7 +32,8 @@ export default class CommandHandler {
             'r' : consts.CAM_DIRECTION.UP,
             'f' : consts.CAM_DIRECTION.DOWN,
             'q' : consts.CAM_DIRECTION.CCW,
-            'e' : consts.CAM_DIRECTION.CW
+            'e' : consts.CAM_DIRECTION.CW,
+            'x' : consts.CAM_DIRECTION.CLR
         };
 
 
@@ -68,8 +69,8 @@ export default class CommandHandler {
         this.cameraKeysContainer = document.querySelector('#cameraControls');
 
 
-        this.movementControls;
-        this.cameraControls;
+        this.movementControls = null;
+        this.cameraControls = null;
 
         this.speedSlider = document.getElementById("speedSlider");
         this.speedTic = document.getElementById("speedTic")
@@ -82,15 +83,8 @@ export default class CommandHandler {
         for (let i = 0; i < 256; i++)
             this.pressed[i] = false;
 
-
         var that = this;
-        this.mobile = false;
-        if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-            this.mobile = true;
-
-        
- 
-        }
+        this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     };
 
