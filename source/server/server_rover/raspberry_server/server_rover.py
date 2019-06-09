@@ -537,7 +537,7 @@ async def main():
     with open(rover_shared_data.rover_data_file) as f:
         rover_shared_data.data = json.load(f)
 
-    rover_hal.open_serial()
+    # rover_hal.open_serial()
 
     # logger = logging.getLogger('websockets')
     # logger.setLevel(logging.DEBUG)

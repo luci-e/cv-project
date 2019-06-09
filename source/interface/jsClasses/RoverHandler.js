@@ -1,6 +1,7 @@
 'use strict';
 import uuid4 from '../libs/uuid.js';
 import * as consts from './Constants.js';
+import {FOLLOW_STATUS} from "./Constants";
 
 
 const LINE_COLOR = "rgba(48,219,225,0.7)"
