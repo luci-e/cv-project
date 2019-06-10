@@ -153,16 +153,16 @@ Command track response
 
 ----------------------------------------------------------------------------------------------------
 
-Command untrack person request
+Command stop tracking request
 
 {
 	"client_id" : "UUID",
     "rover_id" : "UUID",
     "timestamp" : timestamp,
-	"cmd" : "untrack"
+	"cmd" : "stop_tracking"
 }
 
-Command untrack response
+Command stop tracking response
 
 {
     "server_id" : "UUID",

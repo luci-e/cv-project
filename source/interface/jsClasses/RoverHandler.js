@@ -1,11 +1,10 @@
 'use strict';
 import uuid4 from '../libs/uuid.js';
 import * as consts from './Constants.js';
-import {FOLLOW_STATUS} from "./Constants";
 
 
-const LINE_COLOR = "rgba(48,219,225,0.7)"
-const LINE_WIDTH = 10
+const LINE_COLOR = "rgba(48,219,225,0.7)";
+const LINE_WIDTH = 10;
 
 export default class RoverHandler {
     constructor(name, bindings, serverAddress, commandPort, streamingPort, createTab) {
@@ -22,11 +21,11 @@ export default class RoverHandler {
         this.player = null;
 
         this.lastCtrlMsg = null;
-        this.lastStreamMsg = null;
 
         this.id = uuid4();
         this.name = name;
         this.commandHandler = bindings;
+
         // Show loading notice
         this.canvas = document.getElementById('videoOutput');
         this.ctx = this.canvas.getContext("2d");
@@ -39,7 +38,6 @@ export default class RoverHandler {
         if (createTab !== false) {
             this.addToWindow();
         }
-
 
         this.overlay_canvas = document.getElementById('overlayCanvas');
         this.overlay_ctx = this.overlay_canvas.getContext("2d");
@@ -55,6 +53,7 @@ export default class RoverHandler {
         this.w = this.overlay_canvas.width;
         this.h = this.overlay_canvas.height;
 
+        this.tracking_status = consts.TRACKING_STATUS.STOP;
         this.follow_status = consts.FOLLOW_STATUS.STOP;
 
         this.initOverlayCanvas();
@@ -473,9 +472,46 @@ export default class RoverHandler {
 
 	}
 
+	updateFollowStatus(){
 
+        let wheels = this.follow_status === consts.FOLLOW_STATUS.WHEELS;
+        let cam = this.follow_status === consts.FOLLOW_STATUS.GIMBAL;
 
-	cycleFollowStatus(){}
+        let msg = {
+            cmd: "follow",
+            params: {
+                wheels : wheels,
+                cam : cam
+            }
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+	cycleFollowStatus(){
+        switch( this.follow_status ){
+            case consts.FOLLOW_STATUS.STOP:
+                if( this.roverData['mobility'].includes('wheels')){
+                    this.follow_status = consts.FOLLOW_STATUS.WHEELS;
+                }else if( this.roverData['mobility'].includes('gimbal')){
+                    this.follow_status = consts.FOLLOW_STATUS.GIMBAL;
+                }
+                break;
+            case consts.FOLLOW_STATUS.WHEELS:
+                if( this.roverData['mobility'].includes('gimbal')){
+                    this.follow_status = consts.FOLLOW_STATUS.GIMBAL;
+                }else{
+                    this.follow_status = consts.FOLLOW_STATUS.STOP;
+                }
+                break;
+            case consts.FOLLOW_STATUS.GIMBAL:
+                this.follow_status = consts.FOLLOW_STATUS.STOP;
+                break;
+        }
+
+        this.updateFollowStatus();
+    }
 
 
     sendTrackMsg() {
@@ -493,19 +529,8 @@ export default class RoverHandler {
 
         };
 
+        this.lastCtrlMsg = msg;
         this.sendCtrlMsg(msg);
-
-        msg = {
-            cmd: "follow",
-            params: {
-                wheels : true,
-                cam : true
-            }
-
-        };
-
-        this.sendCtrlMsg(msg);
-
     }
 
 
@@ -553,7 +578,9 @@ export default class RoverHandler {
         }
         if (res === 'up' || res === "out") {
 
-            this.sendTrackMsg();
+            if( this.flag) {
+                this.sendTrackMsg();
+            }
 
             this.flag = false;
 

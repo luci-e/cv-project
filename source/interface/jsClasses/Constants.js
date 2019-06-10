@@ -41,5 +41,11 @@ export const FOLLOW_STATUS = {
 	GIMBAL : 2
 };
 
+export const TRACKING_STATUS = {
+    STOP : 0,
+    FACES : 1,
+    CUSTOM : 2
+};
+
 export const ALLOWED_CAM_DIRECTIONS =  new Set([0, 1, 2, 4, 8, 5, 9, 6, 10]);
 

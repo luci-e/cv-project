@@ -2,7 +2,7 @@
 
 import * as RL from './RoverLibs.js';
 
-const SERVER_ADDRESS = 'ws://localhost';
+const SERVER_ADDRESS = 'ws://87.3.60.133';
 const COMMAND_PORT = 8888;
 const STREAMING_PORT = 8889;
 

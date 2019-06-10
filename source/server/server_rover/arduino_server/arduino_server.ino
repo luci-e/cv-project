@@ -125,8 +125,8 @@ class rover_HAL {
 				//this->left_motor.set_speed(0.0);
 				//this->right_motor.set_speed(-this->current_speed);
         // Actually do ccw
-        this->left_motor.set_speed(-0.05);
-        this->right_motor.set_speed(-0.05);
+        this->left_motor.set_speed(-min(0.05, this->current_speed));
+        this->right_motor.set_speed(-min(0.05, this->current_speed));
         
 				break;
 			}
@@ -134,8 +134,8 @@ class rover_HAL {
 				//this->left_motor.set_speed(this->current_speed);
 				//this->right_motor.set_speed(0.0);
         // Actually do cw
-        this->left_motor.set_speed(0.05);
-        this->right_motor.set_speed(0.05);
+        this->left_motor.set_speed(min(0.05, this->current_speed));
+        this->right_motor.set_speed(min(0.05, this->current_speed));
         
 				break;
 			}
@@ -160,13 +160,13 @@ class rover_HAL {
 				break;
 			}
 			case ROVER_DIRECTION::CW: {
-				this->left_motor.set_speed(0.05);
-				this->right_motor.set_speed(0.05);
+				this->left_motor.set_speed(min(0.05, this->current_speed));
+				this->right_motor.set_speed(min(0.05, this->current_speed));
 				break;
 			}
 			case ROVER_DIRECTION::CCW: {
-				this->left_motor.set_speed(-0.05);
-				this->right_motor.set_speed(-0.05);
+				this->left_motor.set_speed(-min(0.05, this->current_speed));
+				this->right_motor.set_speed(-min(0.05, this->current_speed));
 				break;
 			}
 			}

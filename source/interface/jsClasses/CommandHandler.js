@@ -21,6 +21,28 @@ export default class CommandHandler {
 
     constructor(keyDiv) {
 
+        this.arrowContainer = document.querySelector('#movementControls');
+        this.cameraKeysContainer = document.querySelector('#cameraControls');
+
+
+        this.movementControls = null;
+        this.cameraControls = null;
+
+        this.speedSlider = document.getElementById("speedSlider");
+        this.speedTic = document.getElementById("speedTic");
+
+        this.followButton = document.getElementById('targetFollow');
+
+        this.rover = null;
+        this.lastTouched = null;
+        this.lastCameraTouched = null;
+
+        this.pressed = new Array(256);
+        for (let i = 0; i < 256; i++)
+            this.pressed[i] = false;
+
+        this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         this.key_mappings_movement = {
             'w' : consts.ROVER_DIRECTION.FORWARD,
             'a' : consts.ROVER_DIRECTION.LEFT,
@@ -36,6 +58,10 @@ export default class CommandHandler {
             'x' : consts.CAM_DIRECTION.CLR
         };
 
+        this.key_action_mappings = {
+            'c' : this.cycleFollowStatus.bind(this),
+            'z' : this.stopTracking.bind(this)
+        };
 
         // These needs to be mapped to the correct offset for the image
         this.movement_display_mappings = {
@@ -64,34 +90,13 @@ export default class CommandHandler {
             [consts.CAM_DIRECTION.DOWN | consts.CAM_DIRECTION.CCW] : BACKWARD_LEFT_ID
         };
 
-
-        this.arrowContainer = document.querySelector('#movementControls');
-        this.cameraKeysContainer = document.querySelector('#cameraControls');
-
-
-        this.movementControls = null;
-        this.cameraControls = null;
-
-        this.speedSlider = document.getElementById("speedSlider");
-        this.speedTic = document.getElementById("speedTic")
-
-        this.rover = null;
-        this.lastTouched = null;
-        this.lastCameraTouched = null;
-
-        this.pressed = new Array(256);
-        for (let i = 0; i < 256; i++)
-            this.pressed[i] = false;
-
-        var that = this;
-        this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
     };
 
 
     bindCommands(rover) {
 
         this.rover = rover;
+
         // We Python now boyzzzz
         let self = this;
 
@@ -124,17 +129,12 @@ export default class CommandHandler {
                 self.moveSlider(e.offsetX);
         };
 
-
+        this.followButton.onclick = function(e){
+          self.cycleFollowStatus();
+        };
 
         console.log(this.movementControls);
         console.log(this.cameraControls);
-
-
-        //offsetWidth
-        //offsetHeight
-        //offsetTop
-        //offsetLeft
-
 
         //keep track of the touch with the mobile!
         if (this.mobile) {
@@ -158,14 +158,14 @@ export default class CommandHandler {
 
                 }
                 
-            }
+            };
 
             document.getElementById("wrapper").ontouchend = function(e) {
 
                 self.handleMovementControlEnd(rover.currentDirection);
                 self.lastTouched = null;
 
-            }
+            };
 
 
             document.getElementById("cameraControls").ontouchmove = function(e) {
@@ -184,7 +184,7 @@ export default class CommandHandler {
 
                 }
                 
-            }
+            };
 
             document.getElementById("wrapper").ontouchend = function(e) {
 
@@ -254,6 +254,8 @@ export default class CommandHandler {
                 this.handleMovementControlBegin(this.key_mappings_movement[e.key]);
             else if( e.key in this.key_mappings_camera )
                 this.handleCameraControlBegin(this.key_mappings_camera[e.key]);
+            else if( e.key in this.key_action_mappings )
+                this.key_action_mappings[e.key]();
 
             this.pressed[e.keyCode] = true;
         }
@@ -374,6 +376,15 @@ export default class CommandHandler {
         }
     }*/
 
+    cycleFollowStatus() {
+        this.rover.cycleFollowStatus();
+        //TODO update visual for follow status
+
+    }
+
+    stopTracking() {
+
+    }
 }
 
 /*this.up.ontouchstart = function() {
