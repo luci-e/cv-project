@@ -10,10 +10,13 @@
 
 <canvas id="videoOutput" width="640" height="360"
         style="position:absolute; top:50px; left:640px; width:640px; height:360px; opacity:1;"></canvas>
+<canvas id="crossHair" width="640" height="360"
+        style="position:absolute; top:50px; left:640px; width:640px; height:360px; opacity:1;"></canvas>
 <canvas id="overlayCanvas" width="640" height="360"
         style="position:absolute; top:50px; left:640px; width:640px; height:360px; opacity:1;"></canvas>
 
 <div id="roverSelector">
+    <div class="roverElement" data-idx='-1'><h1>SERECT YOR CUR</h1></div>
 </div>
 
 <div id="wrapper">
@@ -43,8 +46,8 @@
 
                 <div id="actionControls" class="flex-row">
                     <div id="targetFollow" class="genericButton" style="top:10px; left:0px"></div>
-                    <div id="tracking" class="genericButton"></div>
-                    <div id="laser" class="genericButton"></div>
+                    <div id="laser" class="genericButton">Laser</div>
+                    <div id="lights" class="genericButton">Lights (scroll)</div>
                 </div>
 
                 <div id="cameraControls" class="flex-column">

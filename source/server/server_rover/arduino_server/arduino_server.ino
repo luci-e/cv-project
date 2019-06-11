@@ -338,11 +338,11 @@ class rover_HAL {
     }
 
     void on() {
-      digitalWrite(this->light_pin, HIGH);
+      analogWrite(this->light_pin, 255);
     }
 
     void off() {
-      digitalWrite(this->light_pin, LOW);
+      analogWrite(this->light_pin, 0);
     }
 
     void dim(){
@@ -770,9 +770,9 @@ void setup() {
   // Set pins
   int wheels_motors_pins[2] = { 7, 8 };
   int camera_motors_pins[2] = { 12, 17 };
-  int distance_sensor_pins[2] = { A0, A1 };
-  int laser_pin = 9;
-  int light_pin = 10;
+  int distance_sensor_pins[2] = { 14, 15 };
+  int laser_pin = 5;
+  int light_pin = 6;
 
   // Init controllers
   g_rover_hal.init_motor_controllers(wheels_motors_pins, camera_motors_pins);

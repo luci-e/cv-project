@@ -31,6 +31,8 @@ export default class CommandHandler {
         this.speedTic = document.getElementById("speedTic");
 
         this.followButton = document.getElementById('targetFollow');
+        this.laserButton = document.getElementById('laser');
+        this.lightButton = document.getElementById('lights');
 
         this.rover = null;
         this.lastTouched = null;
@@ -130,6 +132,17 @@ export default class CommandHandler {
 
         this.followButton.onclick = function (e) {
             self.cycleFollowStatus();
+        };
+
+        this.laserButton.onclick = function (e) {
+            self.cycleLaserStatus();
+        };
+
+        this.lightButton.onclick = function (e) {
+            self.cycleLightStatus();
+        };
+        this.lightButton.onmousewheel = function (e) {
+            self.adjustLight(e.deltaY);
         };
 
         // console.log(this.movementControls);
@@ -376,12 +389,25 @@ export default class CommandHandler {
     cycleFollowStatus() {
         this.rover.cycleFollowStatus();
         //TODO update visual for follow status
-
     }
 
     stopTracking() {
 
     }
+
+    cycleLaserStatus() {
+        this.rover.toggleLaser();
+    }
+
+    cycleLightStatus() {
+        this.rover.toggleLight();
+    }
+
+    adjustLight(delta){
+        //TODO change background
+        this.rover.adjustLight(delta);
+    }
+
 }
 
 /*this.up.ontouchstart = function() {

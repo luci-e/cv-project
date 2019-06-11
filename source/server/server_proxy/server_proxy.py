@@ -195,7 +195,7 @@ class RoverHandler:
         self.distance_threshold = 0.0
         self.target_area_increase = 1.15
         self.stop_sent = False
-        self.camera_wiggle_dampener = 30.0
+        self.camera_wiggle_dampener = 20.0
         self.follow_area_threshold = -0.01
         self.movement_wiggle_dampener = 0.02
         self.rotational_dampener = 50
@@ -263,8 +263,8 @@ class RoverHandler:
         move_x = abs(self.delta_x) > self.camera_follow_x_threshold
         move_y = abs(self.delta_y) > self.camera_follow_y_threshold
 
-        adj_speed_x = round(90.0 * (abs(self.delta_x) / self.stream_data.width) ** 1.5, 2)
-        adj_speed_y = round(90.0 * (abs(self.delta_y) / self.stream_data.height) ** 1.5, 2)
+        adj_speed_x = round(90.0 * (abs(self.delta_x) / self.stream_data.width) ** 1.2, 2)
+        adj_speed_y = round(90.0 * (abs(self.delta_y) / self.stream_data.height) ** 1.2, 2)
 
         if self.dist > self.distance_threshold:
             self.last_distances.append(self.dist)

@@ -58,6 +58,12 @@ export default class RoverHandler {
 
         this.initOverlayCanvas();
 
+        this.laser_status = consts.LASER_STATUS.OFF;
+        this.light_status = consts.LIGHT_STATUS.OFF;
+        this.light_intensity = 125;
+
+        //this.drawCrosshHair();
+
     }
 
     addToWindow() {
@@ -400,14 +406,22 @@ export default class RoverHandler {
 
     }
 
-    laserOn() {
+    toggleLaser() {
 
-        console.log("HELLO THERE");
+        let new_status = 'off';
+
+        if( this.laser_status == consts.LASER_STATUS.OFF){
+            this.laser_status = consts.LASER_STATUS.ON;
+            new_status = 'on';
+        }else{
+            this.laser_status = consts.LASER_STATUS.OFF;
+            new_status = 'off';
+        }
 
         var msg = {
             cmd: "laser_ctrl",
             params: {
-                action: "on"
+                action: new_status
             }
         };
 
@@ -416,19 +430,47 @@ export default class RoverHandler {
     }
 
 
-    laserOff() {
+    toggleLight() {
 
-        console.log("HELLO THERE");
+        let new_status = 'off';
 
-        var msg = {
-            cmd: "laser_ctrl",
+        if( this.light_status == consts.LIGHT_STATUS.OFF){
+            this.light_status = consts.LIGHT_STATUS.ON;
+            new_status = 'on';
+        }else{
+            this.light_status = consts.LIGHT_STATUS.OFF;
+            new_status = 'off';
+        }
+
+        let msg = {
+            cmd: "light_ctrl",
             params: {
-                action: "off"
+                action: new_status
             }
         };
 
         this.lastCtrlMsg = msg;
         this.sendCtrlMsg(msg);
+    }
+
+    adjustLight(deltaIntensity){
+        if( this.light_status === consts.LIGHT_STATUS.ON){
+            deltaIntensity = -deltaIntensity;
+            deltaIntensity = parseInt( Math.max(-8, Math.min(deltaIntensity, 8)) );
+            this.light_intensity += deltaIntensity;
+            this.light_intensity = parseInt( Math.max(0, Math.min(this.light_intensity, 255)) );
+
+            let msg = {
+                cmd: "light_ctrl",
+                params: {
+                    action: 'dim',
+                    intensity: this.light_intensity
+                }
+            };
+
+            this.lastCtrlMsg = msg;
+            this.sendCtrlMsg(msg);
+        }
     }
 
 
@@ -608,11 +650,14 @@ export default class RoverHandler {
     }
 
     selectRover(roverIndex) {
+        if( roverIndex < 0)
+            return;
+
         this.currentRoverId = this.rovers[roverIndex].rover_id;
         this.roverData = this.rovers[roverIndex].rover_data;
 
         let roverList = document.getElementById('roverSelector');
-        roverList.setAttribute('display', 'none')
+        roverList.style.display = 'none'
 
         console.log(this.roverData);
 
@@ -628,25 +673,34 @@ export default class RoverHandler {
 
     createRoverElement(rover, index) {
         let roverHandler = this;
-        let fragmentString = `<div class='roverElement' data-idx='${index}'> Rover name ${rover.rover_data.name} <br> " +
-            "Description: ${rover.rover_data.description} <div>`;
-        let roverElement = document.createRange().createContextualFragment(fragmentString);
-
-        roverElement.onclick = function (e) {
-            roverHandler.selectRover(roverElement.dataset.idx);
-        };
-
-        return roverElement;
+        let fragmentString = `<div class='roverElement' data-idx='${index}'> Rover name ${rover.rover_data.name} <br> \
+                                Description: ${rover.rover_data.description} </div>`;
+        return document.createRange().createContextualFragment(fragmentString);
     }
 
     populateRoverList() {
+        let roverHandler = this;
         let roverList = document.getElementById('roverSelector');
-        roverList.setAttribute('display', 'flex');
+        roverList.style.display = 'flex'
 
         let rover;
         for (rover = 0; rover < this.rovers.length; rover++) {
-            roverList.appendChild(this.createRoverElement(this.rovers[rover], rover));
+            let appendedRover = roverList.appendChild(this.createRoverElement(this.rovers[rover], rover));
         }
 
+        document.querySelectorAll('.roverElement').forEach(function (e){
+            e.onclick = function (event) {
+                roverHandler.selectRover(e.dataset.idx);
+            };
+        })
+
+    }
+
+    drawCrosshHair() {
+        let crosshair = document.getElementById('crossHair');
+        let ctx = crosshair.getContext("2d");
+        ctx.lineWidth = 5;
+
+        ctx.strokeRect(310, 170, 20, 20);
     }
 }

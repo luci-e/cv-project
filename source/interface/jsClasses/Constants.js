@@ -47,5 +47,15 @@ export const TRACKING_STATUS = {
     CUSTOM : 2
 };
 
+export const LASER_STATUS = {
+	OFF: 0,
+	ON : 1
+};
+
+export const LIGHT_STATUS = {
+	OFF: 0,
+	ON : 1
+};
+
 export const ALLOWED_CAM_DIRECTIONS =  new Set([0, 1, 2, 4, 8, 5, 9, 6, 10]);
 
