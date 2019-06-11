@@ -397,15 +397,34 @@ export default class CommandHandler {
 
     cycleLaserStatus() {
         this.rover.toggleLaser();
+        let img = this.laserButton.querySelector("img");
+
+        if(this.rover.laser_status === consts.LASER_STATUS.OFF ){
+            img.setAttribute("src", "img/laser_off.png")
+        }else{
+            img.setAttribute("src", "img/laser_on.png")
+        }
     }
 
     cycleLightStatus() {
         this.rover.toggleLight();
+
+        let img = this.lightButton.querySelector("img");
+
+        if(this.rover.light_status === consts.LIGHT_STATUS.OFF ){
+            img.setAttribute("src", "img/light_off.png")
+            img.style.opacity = "1";
+        }else{
+            img.setAttribute("src", "img/light_on.png")
+            img.style.opacity = String(this.rover.light_intensity / 255);
+        }
+
     }
 
     adjustLight(delta){
-        //TODO change background
+        let img = this.lightButton.querySelector("img");
         this.rover.adjustLight(delta);
+        img.style.opacity = String(Math.max((this.rover.light_intensity / 255), 0.1));
     }
 
 }

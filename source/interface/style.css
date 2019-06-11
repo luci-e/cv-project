@@ -135,6 +135,10 @@ body {
 .genericButton {
     width: 140px;
     height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background: url("img/genericButton.png") 0 0;
     margin-top: auto;
     margin-bottom: auto;
