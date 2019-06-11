@@ -50,6 +50,14 @@ enum class LASER_ACTION {
 	BLINK
 };
 
+// The enum of the possible statuses for the laser
+enum class LIGHT_ACTION {
+  ON,
+  OFF,
+  BLINK,
+  DIM
+};
+
 // The enum of the possible status of the camera after a move command
 enum class ROVER_STATUS {
 	OK,

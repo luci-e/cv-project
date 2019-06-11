@@ -9,7 +9,6 @@ const STREAMING_PORT = 8889;
 
 var keys = new RL.CommandHandler("commands-container");
 var rover = new RL.RoverHandler("SHA", keys, SERVER_ADDRESS, COMMAND_PORT, STREAMING_PORT);
-//var rover = new RL.RoverHandler("SHA2", keys, SOCKET_ADDR);
 
 
 rover.connectToServer();

@@ -48,7 +48,7 @@ export default class RoverHandler {
         this.prevY = 0;
         this.currY = 0;
 
-        this.roi = {x:0,y:0,w:0,h:0};
+        this.roi = {x: 0, y: 0, w: 0, h: 0};
 
         this.w = this.overlay_canvas.width;
         this.h = this.overlay_canvas.height;
@@ -157,21 +157,7 @@ export default class RoverHandler {
                 case "list": {
                     console.log(message);
                     this.rovers = message['rovers'];
-
-                    //TODO: let the user choose the rover to which to connect to
-                    this.currentRoverId = message['rovers'][0]['rover_id'];
-
-                    this.roverData = message['rovers'][0]['rover_data'];
-                    console.log(this.roverData);
-
-                    let connect_cmd = {
-                        "client_id": this.id,
-                        "rover_id": message['rovers'][0]['rover_id'],
-                        "cmd": "connect"
-                    };
-
-                    this.lastCtrlMsg = connect_cmd;
-                    this.sendCtrlMsg(connect_cmd);
+                    this.populateRoverList();
                     break;
                 }
 
@@ -193,7 +179,7 @@ export default class RoverHandler {
 
     connectToStream() {
         // Setup the WebSocket connection and start the player
-        this.stream_socket = new WebSocket(this.serverAddress+':'+this.streamingPort);
+        this.stream_socket = new WebSocket(this.serverAddress + ':' + this.streamingPort);
         //this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
 
         this.stream_socket.onopen = function (event) {
@@ -216,7 +202,7 @@ export default class RoverHandler {
 
     // The stream handshake handler only receives one message and then commits
     // not alive. This makes it a very lucky handler.
-    streamHandshakeHandler(msg){
+    streamHandshakeHandler(msg) {
 
         // Also his only role is to receive the message and log it. It doesn't even
         // do anything useful with it. Gods what a stupid handler.
@@ -230,7 +216,7 @@ export default class RoverHandler {
 
         this.sendStreamMsg(start_msg);
 
-        this.player = new jsmpeg(this.stream_socket, {canvas:this.canvas, autoplay:true});
+        this.player = new jsmpeg(this.stream_socket, {canvas: this.canvas, autoplay: true});
 
         // Call the onopen as if nothing happened
         this.player.initSocketClient.bind(this.player)(null);
@@ -279,17 +265,16 @@ export default class RoverHandler {
     }
 
 
-
     setSpeed(value) {
 
-    	value = value.toFixed(3);
+        value = value.toFixed(3);
 
-    	console.log("Request to set the speed to: "+value);
+        console.log("Request to set the speed to: " + value);
 
         var msg = {
             cmd: "set_speed",
             params: {
-            	speed: value
+                speed: value
             }
         };
 
@@ -297,35 +282,35 @@ export default class RoverHandler {
 
     }
 
-    updateMovement(){
+    updateMovement() {
         console.log(this.currentDirection);
         let direction = [];
 
-        if ( this.currentDirection === consts.ROVER_DIRECTION.STOP ){
+        if (this.currentDirection === consts.ROVER_DIRECTION.STOP) {
             this.stopAction();
             return;
-        }else{
-            if ( this.currentDirection & consts.ROVER_DIRECTION.FORWARD ){
+        } else {
+            if (this.currentDirection & consts.ROVER_DIRECTION.FORWARD) {
                 direction.push('forward')
             }
-            if ( this.currentDirection & consts.ROVER_DIRECTION.BACK ){
+            if (this.currentDirection & consts.ROVER_DIRECTION.BACK) {
                 direction.push('back')
             }
-            if ( this.currentDirection & consts.ROVER_DIRECTION.LEFT ){
+            if (this.currentDirection & consts.ROVER_DIRECTION.LEFT) {
                 direction.push('left')
             }
-            if ( this.currentDirection & consts.ROVER_DIRECTION.RIGHT ){
+            if (this.currentDirection & consts.ROVER_DIRECTION.RIGHT) {
                 direction.push('right')
             }
-            if ( this.currentDirection & consts.ROVER_DIRECTION.CW ){
+            if (this.currentDirection & consts.ROVER_DIRECTION.CW) {
                 direction.push('cw')
             }
-            if ( this.currentDirection & consts.ROVER_DIRECTION.CCW ){
+            if (this.currentDirection & consts.ROVER_DIRECTION.CCW) {
                 direction.push('ccw')
             }
         }
 
-        if( direction.length === 0 )
+        if (direction.length === 0)
             return;
 
         let msg = {
@@ -338,29 +323,29 @@ export default class RoverHandler {
         this.sendCtrlMsg(msg);
     }
 
-    updateCamMovement(){
+    updateCamMovement() {
         console.log(this.currentCamDirection);
         let camDirection = [];
 
-        if ( this.currentCamDirection === consts.CAM_DIRECTION.STOP ){
+        if (this.currentCamDirection === consts.CAM_DIRECTION.STOP) {
             this.stopCamera();
             return;
-        }else{
-            if ( this.currentCamDirection & consts.CAM_DIRECTION.UP ){
+        } else {
+            if (this.currentCamDirection & consts.CAM_DIRECTION.UP) {
                 camDirection.push('up')
             }
-            if ( this.currentCamDirection & consts.CAM_DIRECTION.DOWN ){
+            if (this.currentCamDirection & consts.CAM_DIRECTION.DOWN) {
                 camDirection.push('down')
             }
-            if ( this.currentCamDirection & consts.CAM_DIRECTION.CW ){
+            if (this.currentCamDirection & consts.CAM_DIRECTION.CW) {
                 camDirection.push('cw')
             }
-            if ( this.currentCamDirection & consts.CAM_DIRECTION.CCW ){
+            if (this.currentCamDirection & consts.CAM_DIRECTION.CCW) {
                 camDirection.push('ccw')
             }
         }
 
-        if( camDirection.length === 0 )
+        if (camDirection.length === 0)
             return;
 
         let msg = {
@@ -403,7 +388,7 @@ export default class RoverHandler {
 
         this.currentCamDirection = consts.CAM_DIRECTION.STOP;
 
-    	var msg = {
+        var msg = {
             cmd: "set_cam",
             params: {
                 angles: [0, 0]
@@ -451,7 +436,7 @@ export default class RoverHandler {
         var msg = {
             cmd: "set_speed",
             params: {
-            	speed: 0.8
+                speed: 0.8
             }
         };
 
@@ -462,17 +447,17 @@ export default class RoverHandler {
         console.log("Test Message sent to server!");
     }
 
-	drawFaces(faces) {
+    drawFaces(faces) {
 
-		var size = faces.length;
-		for(var i=0; i<size; i++) {
-			var f = faces[i];
-			this.drawRect(f.x, f.y, f.width, f.height);
-		}
+        var size = faces.length;
+        for (var i = 0; i < size; i++) {
+            var f = faces[i];
+            this.drawRect(f.x, f.y, f.width, f.height);
+        }
 
-	}
+    }
 
-	updateFollowStatus(){
+    updateFollowStatus() {
 
         let wheels = this.follow_status === consts.FOLLOW_STATUS.WHEELS;
         let cam = this.follow_status === consts.FOLLOW_STATUS.GIMBAL;
@@ -480,8 +465,8 @@ export default class RoverHandler {
         let msg = {
             cmd: "follow",
             params: {
-                wheels : wheels,
-                cam : cam
+                wheels: wheels,
+                cam: cam
             }
         };
 
@@ -489,19 +474,19 @@ export default class RoverHandler {
         this.sendCtrlMsg(msg);
     }
 
-	cycleFollowStatus(){
-        switch( this.follow_status ){
+    cycleFollowStatus() {
+        switch (this.follow_status) {
             case consts.FOLLOW_STATUS.STOP:
-                if( this.roverData['mobility'].includes('wheels')){
+                if (this.roverData['mobility'].includes('wheels')) {
                     this.follow_status = consts.FOLLOW_STATUS.WHEELS;
-                }else if( this.roverData['mobility'].includes('gimbal')){
+                } else if (this.roverData['mobility'].includes('gimbal')) {
                     this.follow_status = consts.FOLLOW_STATUS.GIMBAL;
                 }
                 break;
             case consts.FOLLOW_STATUS.WHEELS:
-                if( this.roverData['mobility'].includes('gimbal')){
+                if (this.roverData['mobility'].includes('gimbal')) {
                     this.follow_status = consts.FOLLOW_STATUS.GIMBAL;
-                }else{
+                } else {
                     this.follow_status = consts.FOLLOW_STATUS.STOP;
                 }
                 break;
@@ -515,16 +500,16 @@ export default class RoverHandler {
 
 
     sendTrackMsg() {
-        
-        let x = Math.min(this.roi.x, this.currX)
-        let y = Math.min(this.roi.y, this.currY)
-        let w = Math.abs(this.roi.w)
-        let h = Math.abs(this.roi.h)
+
+        let x = Math.min(this.roi.x, this.currX);
+        let y = Math.min(this.roi.y, this.currY);
+        let w = Math.abs(this.roi.w);
+        let h = Math.abs(this.roi.h);
 
         let msg = {
             cmd: "track_custom",
             params: {
-                roi: [x, y, w,h]
+                roi: [x, y, w, h]
             }
 
         };
@@ -534,20 +519,20 @@ export default class RoverHandler {
     }
 
 
-	drawRect(x, y, width, height) {
+    drawRect(x, y, width, height) {
 
 
-		//CONFIG FOR LINE STYLE
-		this.ctx.strokeStyle = LINE_COLOR;
-		this.ctx.lineWidth = LINE_WIDTH;
+        //CONFIG FOR LINE STYLE
+        this.ctx.strokeStyle = LINE_COLOR;
+        this.ctx.lineWidth = LINE_WIDTH;
 
 
-		this.ctx.rect(x, y, width, height);
-		this.ctx.stroke();
+        this.ctx.rect(x, y, width, height);
+        this.ctx.stroke();
 
-	}
+    }
 
-	initOverlayCanvas(){
+    initOverlayCanvas() {
 
         this.overlay_canvas.addEventListener("mousemove", function (e) {
             this.findXY('move', e);
@@ -578,13 +563,13 @@ export default class RoverHandler {
         }
         if (res === 'up' || res === "out") {
 
-            if( this.flag) {
+            if (this.flag) {
                 this.sendTrackMsg();
             }
 
             this.flag = false;
 
-            if( this.roi.w !== 0 && this.roi.h !== 0){
+            if (this.roi.w !== 0 && this.roi.h !== 0) {
                 //send the command to the server adjusted for negative values
                 this.roi.x = 0;
                 this.roi.y = 0;
@@ -593,7 +578,7 @@ export default class RoverHandler {
             }
 
 
-            this.overlay_ctx.clearRect(0,0, this.w, this.h);
+            this.overlay_ctx.clearRect(0, 0, this.w, this.h);
 
         }
         if (res === 'move') {
@@ -610,18 +595,58 @@ export default class RoverHandler {
     }
 
 
-    draw_current_roi(){
+    draw_current_roi() {
 
         this.overlay_ctx.strokeStyle = LINE_COLOR;
-        this.overlay_ctx.lineWidth= LINE_WIDTH;
+        this.overlay_ctx.lineWidth = LINE_WIDTH;
 
 
-        this.roi.w = this.currX-this.roi.x;
-        this.roi.h = this.currY-this.roi.y;
-        this.overlay_ctx.clearRect(0,0, this.w, this.h);
+        this.roi.w = this.currX - this.roi.x;
+        this.roi.h = this.currY - this.roi.y;
+        this.overlay_ctx.clearRect(0, 0, this.w, this.h);
         this.overlay_ctx.strokeRect(this.roi.x, this.roi.y, this.roi.w, this.roi.h);
     }
 
+    selectRover(roverIndex) {
+        this.currentRoverId = this.rovers[roverIndex].rover_id;
+        this.roverData = this.rovers[roverIndex].rover_data;
 
+        let roverList = document.getElementById('roverSelector');
+        roverList.setAttribute('display', 'none')
 
+        console.log(this.roverData);
+
+        let connect_cmd = {
+            "client_id": this.id,
+            "rover_id": this.currentRoverId,
+            "cmd": "connect"
+        };
+
+        this.lastCtrlMsg = connect_cmd;
+        this.sendCtrlMsg(connect_cmd);
+    }
+
+    createRoverElement(rover, index) {
+        let roverHandler = this;
+        let fragmentString = `<div class='roverElement' data-idx='${index}'> Rover name ${rover.rover_data.name} <br> " +
+            "Description: ${rover.rover_data.description} <div>`;
+        let roverElement = document.createRange().createContextualFragment(fragmentString);
+
+        roverElement.onclick = function (e) {
+            roverHandler.selectRover(roverElement.dataset.idx);
+        };
+
+        return roverElement;
+    }
+
+    populateRoverList() {
+        let roverList = document.getElementById('roverSelector');
+        roverList.setAttribute('display', 'flex');
+
+        let rover;
+        for (rover = 0; rover < this.rovers.length; rover++) {
+            roverList.appendChild(this.createRoverElement(this.rovers[rover], rover));
+        }
+
+    }
 }

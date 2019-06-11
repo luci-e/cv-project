@@ -1,205 +1,203 @@
 div {
-  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome and Opera */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none;
+    /* Non-prefixed version, currently
+                                     supported by Chrome and Opera */
 }
 
 html, body {
-	height:100%;
-	margin: 0;
+    height: 100%;
+    margin: 0;
 
-	flex-direction: row;
-	align-items: stretch;
-	overflow:hidden;
+    flex-direction: row;
+    align-items: stretch;
+    overflow: hidden;
 
-	background: black;
+    background: black;
 }
 
 body {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    position: relative;
 
 }
 
 #wrapper {
-
-	display: flex;
-	flex-wrap: nowrap;
-
-
-	align-items: stretch;
-
-
-	flex:0 1 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    flex: 0 1 100%;
 }
 
 .flex-row {
-	display: flex;
-	flex-direction: row;
-	align-items:stretch;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
 
-	
-	flex:1;
+
+    flex: 1;
 }
 
 
 .flex-column {
-	display: flex;
-	flex-direction: column;
-	align-items:stretch;
-
-	
-	flex:1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex: 1;
 }
 
 .flex-element {
 }
 
 #useless-container {
-	flex-basis: 80%;
-	
-	
+    flex-basis: 80%;
 }
 
 #list-container {
-
-	flex-basis: 20%;	
-	
-
+    flex-basis: 20%;
 }
-
 
 
 .button {
-	display: flex;
-	width:40px;
-	height:40px;
+    display: flex;
+    width: 40px;
+    height: 40px;
 }
 
 .cameraButton {
-	position:absolute;
-	width:120px;
-	height:120px;
-	
-	align-items:center;
-	justify-content: center;
+    position: absolute;
+    width: 120px;
+    height: 120px;
+
+    align-items: center;
+    justify-content: center;
 
 }
 
 .buttonKey {
 
-	position:absolute;
-	width:60px;
-	height:60px;
-	
-	align-items:center;
-	justify-content: center;
+    position: absolute;
+    width: 60px;
+    height: 60px;
+
+    align-items: center;
+    justify-content: center;
 }
 
 #commands-container {
-	align-items: center;
-	flex:1;
-	justify-content: space-between;
+    align-items: center;
+    flex: 1;
+    justify-content: space-between;
 }
 
 #movementControls {
-	align-items: center;
-	flex-basis:241px;
-	min-width:241px;
-	flex:0;
-	width:241px;
-	height:241px;
-	background: url("img/arrowkeys.png") 0px 0px;
-	position: relative;
-	
+    align-items: center;
+    min-width: 241px;
+    flex: 0 1 241px;
+    width: 241px;
+    height: 241px;
+    background: url("img/arrowkeys.png") 0 0;
+    position: relative;
+
 }
 
 #rightInputContainer {
-	flex-direction:right;
+    flex-direction: row;
 }
 
 #actionControls {
-	margin-left: auto;
-	align-items:right;
-	flex-basis:420px;
-	min-width:420px;
-	max-width:420px;
-	width:420px;
-	height:241px;
-	position:relative;
+    align-items: center;
+    justify-content: center;
+    flex-basis: 420px;
+    min-width: 420px;
+    max-width: 420px;
+    width: 420px;
+    height: 241px;
+    position: relative;
 }
 
 #cameraControls {
-	align-items: center;
-	flex-basis:241px;
-	min-width:241px;
-	flex:0;
-	width:241px;
-	height:241px;
-	background: url("img/arrowkeys.png") 0px 0px;
-	position: relative;
+    align-items: center;
+    min-width: 241px;
+    flex: 0 1 241px;
+    width: 241px;
+    height: 241px;
+    background: url("img/arrowkeys.png") 0 0;
+    position: relative;
 }
 
 
 .genericButton {
-	width: 140px;
-	height: 140px;
-	background: url("img/genericButton.png") 0px 0px;
-	margin-top:auto;
-	margin-bottom:auto;
-	
+    width: 140px;
+    height: 140px;
+    background: url("img/genericButton.png") 0 0;
+    margin-top: auto;
+    margin-bottom: auto;
+
 }
 
 #top-row {
-	flex-basis:100%;
+    flex-basis: 100%;
 }
 
 #bottom-row {
-	flex-basis:400px;
-	
-	align-items:center;
+    flex-basis: 400px;
+
+    align-items: center;
 }
 
 #tabs {
-	flex-basis:40px;
+    flex-basis: 40px;
 }
 
 .tab-element {
-
-	display: flex;
-	flex-basis:200px;
-
-	
-
+    display: flex;
+    flex-basis: 200px;
 }
 
 
 #speedSlider {
-	width: 340px;
-	height: 90px;
-	position:absolute;
-	top:30px;
-	right:30px;
-	background:url("img/speedBar.png");
+    width: 340px;
+    height: 90px;
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: url("img/speedBar.png");
 }
 
-#speedTic{
-	position:absolute;
-	width:15px;
-	height:55px;
-	top:50%;
-	margin-top:-27px;
-	left:100px;
-	background:url("img/speedTic.png");
+#speedTic {
+    position: absolute;
+    width: 15px;
+    height: 55px;
+    top: 50%;
+    margin-top: -27px;
+    left: 100px;
+    background: url("img/speedTic.png");
 }
 
 
 #videoOutput {
-	border: 1px solid white;
+    border: 1px solid white;
+}
+
+#roverSelector{
+    display: none;
+    margin: 10px auto;
+    width: 300px;
+    height: 600px;
+    z-index: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.roverElement{
+    flex: 0 1 50px;
+    width: 100%;
+    border: black solid 1px;
+    background-color: rgba(0, 191, 255, 0.5);
 }

@@ -1,4 +1,5 @@
 {
+  "name" : "Shear Heart Attack",
   "description" : "I'm a little rover!",
   "fov" : 60,
   "stream_size" : [640, 360],

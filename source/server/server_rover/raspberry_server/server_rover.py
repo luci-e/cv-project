@@ -42,6 +42,14 @@ class LASER_ACTION(Flag):
     BLINK = 4
 
 
+# The enum of the possible statuses for the laser
+class LIGHT_ACTION(Flag):
+    ON = 1
+    OFF = 2
+    BLINK = 4
+    DIM = 8
+
+
 # The enum of the possible status of the camera after a move command
 class ROVER_STATUS(Flag):
     OK = 0
@@ -159,6 +167,22 @@ class rover_HAL:
         self.send_serial_command(bytes(serial_command, 'ascii'))
         return ROVER_STATUS.OK
 
+    def light_ctrl(self, action, intensity=0):
+
+        serial_command = 'light_ctrl '
+
+        if action == LIGHT_ACTION.ON:
+            serial_command += 'i'
+        elif action == LIGHT_ACTION.OFF:
+            serial_command += 'o'
+        elif action == LIGHT_ACTION.DIM:
+            serial_command += f'd {intensity}'
+
+        serial_command += '\n'
+
+        self.send_serial_command(bytes(serial_command, 'ascii'))
+        return ROVER_STATUS.OK
+
     def set_speed(self, speed):
         serial_command = f'speed {speed}'
 
@@ -227,6 +251,7 @@ class RoverRequestHandler:
                                  'attack': self.cmd_attack_person,
                                  'stop_attack': self.cmd_stop_attack_person,
                                  'laser_ctrl': self.cmd_laser_ctrl,
+                                 'light_ctrl': self.cmd_light_ctrl,
                                  'list_faces': self.cmd_list_faces}
 
     async def connect(self):
@@ -473,6 +498,40 @@ class RoverRequestHandler:
                 await self.error_response("bad_action")
 
             r = rover_hal.laser_ctrl(laser_action)
+            if r == ROVER_STATUS.OK:
+                await self.success_response()
+
+        except Exception as e:
+            print(type(e))  # the exception instance
+            print(e.args)  # arguments stored in .args
+            print(e)
+            await self.error_response("bad_params")
+
+    # Puts the laser in the desired state
+    async def cmd_light_ctrl(self, message):
+
+        print('Processing light control command')
+
+        try:
+            params = message['params']
+
+            action = params['action']
+            light_action = None
+            intensity = 0
+
+            if action == 'on':
+                light_action = LIGHT_ACTION.ON
+            elif action == 'off':
+                light_action = LIGHT_ACTION.OFF
+            elif action == 'blink':
+                light_action = LIGHT_ACTION.BLINK
+            elif action == 'dim':
+                intensity = params['intensity']
+                light_action = LIGHT_ACTION.DIM
+            else:
+                await self.error_response("bad_action")
+
+            r = rover_hal.light_ctrl(light_action, intensity)
             if r == ROVER_STATUS.OK:
                 await self.success_response()
 
