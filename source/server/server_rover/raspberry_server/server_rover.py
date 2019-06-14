@@ -67,6 +67,7 @@ class RoverData:
         self.cmd_port = 6666
         self.stream_port = 7777
         self.server_address = ''
+        self.stream_address = ''
         self.serial_port = ''
         self.camera_no = 0
         self.data = None
@@ -554,7 +555,7 @@ class BroadcastOutput(object):
 -vcodec mpeg2video -q:v 7  \
 -map 0:0 -threads 4 -an \
 -sdp_file {rover_shared_data.stream_conf_file_name} \
--f rtp rtp://{rover_shared_data.server_address}:{rover_shared_data.stream_port}'
+-f rtp rtp://{rover_shared_data.stream_address}:{rover_shared_data.stream_port}'
 
         print(self.command)
         self.converter = None
@@ -583,6 +584,8 @@ async def main():
                         help='The serial port to communicate with the arduino')
     parser.add_argument('-a', '--server_address', required=True,
                         help='The address of the dispatcher server')
+    parser.add_argument('-r', '--stream_address', required=True,
+                        help='The address on which to serve the stream')
     parser.add_argument('-n', '--camera_no', default=0, type=int,
                         help='The camera number from which to take the stream')
     args = parser.parse_args()
@@ -592,6 +595,7 @@ async def main():
     rover_shared_data.serial_port = args.serial
     rover_shared_data.camera_no = args.camera_no
     rover_shared_data.server_address = args.server_address
+    rover_shared_data.stream_address = args.stream_address
 
     with open(rover_shared_data.rover_data_file) as f:
         rover_shared_data.data = json.load(f)

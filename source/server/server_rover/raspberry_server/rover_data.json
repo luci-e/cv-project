@@ -1,7 +1,7 @@
 {
-  "name" : "Shear Heart Attack",
-  "description" : "I'm a little rover!",
+  "name" : "Bites Za Dusto",
+  "description" : "I'm a little turret!",
   "fov" : 60,
-  "stream_size" : [640, 360],
+  "stream_size" : [640, 480],
   "mobility" : ["gimbal", "wheels"]
 }

@@ -61,7 +61,9 @@ export default class CommandHandler {
 
         this.key_action_mappings = {
             'c': this.cycleFollowStatus.bind(this),
-            'z': this.stopTracking.bind(this)
+            'z': this.stopTracking.bind(this),
+            't': this.cycleLightStatus.bind(this),
+            'g': this.cycleLaserStatus.bind(this)
         };
 
         // These needs to be mapped to the correct offset for the image

@@ -487,7 +487,7 @@ class RoverHandler:
             self.converter = await asyncio.create_subprocess_shell(command,
                                                                    stdin=asyncio.subprocess.PIPE,
                                                                    stdout=asyncio.subprocess.PIPE,
-                                                                   stderr=asyncio.subprocess.STDOUT,
+                                                                   stderr=asyncio.subprocess.DEVNULL,
                                                                    close_fds=False, shell=True)
             atexit.register(lambda: self.converter.kill())
             asyncio.create_task(self.start_streaming())
