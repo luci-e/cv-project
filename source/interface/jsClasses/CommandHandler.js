@@ -400,9 +400,12 @@ export default class CommandHandler {
         let img = this.laserButton.querySelector("img");
 
         if(this.rover.laser_status === consts.LASER_STATUS.OFF ){
-            img.setAttribute("src", "img/laser_off.png")
+            img.setAttribute("src", "img/laser_off.png");
+            this.laserButton.style.backgroundPosition="0px 0px";
+
         }else{
-            img.setAttribute("src", "img/laser_on.png")
+            img.setAttribute("src", "img/laser_on.png");
+            this.laserButton.style.backgroundPosition="-140px 0px";
         }
     }
 
@@ -414,9 +417,11 @@ export default class CommandHandler {
         if(this.rover.light_status === consts.LIGHT_STATUS.OFF ){
             img.setAttribute("src", "img/light_off.png")
             img.style.opacity = "1";
+            this.lightButton.style.backgroundPosition="0px 0px";
         }else{
             img.setAttribute("src", "img/light_on.png")
             img.style.opacity = String(this.rover.light_intensity / 255);
+            this.lightButton.style.backgroundPosition="-140px 0px";
         }
 
     }
