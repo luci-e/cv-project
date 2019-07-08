@@ -1,10 +1,10 @@
 body {
     justify-content: center;
     background-color: black;
-    overflow:hidden;
+    overflow: hidden;
 }
 
-#slide_container{
+#slide_container {
     position: absolute;
     box-sizing: border-box;
     display: flex;
@@ -29,7 +29,7 @@ body {
     background-size: cover;
 }
 
-#cover_title{
+#cover_title {
     position: inherit;
 
     font-size: 3vw;
@@ -43,7 +43,7 @@ body {
     width: 72%;
 }
 
-#cover_advisor{
+#cover_advisor {
     position: inherit;
 
     font-size: 2.5vw;
@@ -54,7 +54,7 @@ body {
     top: 85%;
 }
 
-#cover_candidate{
+#cover_candidate {
     position: inherit;
 
     font-size: 2.5vw;
@@ -81,14 +81,14 @@ div.slideWrap > div {
     right: 0;
 }
 
-.slide_text{
+.slide_text {
     position: absolute;
-    display:flex;
+    display: flex;
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
 
-    font-size: 2vh;
+    font-size: 4vh;
     font-family: Arial;
     color: black;
     line-height: 200%;
@@ -98,7 +98,7 @@ div.slideWrap > div {
     height: 65%;
     width: 80%;
 
-    //border: 1px solid black;
+/ / border: 1 px solid black;
 }
 
 .inner_title_bot {
@@ -115,7 +115,7 @@ div.slideWrap > div {
     width: auto;
 }
 
-.inner_title_top{
+.inner_title_top {
     position: absolute;
     box-sizing: border-box;
 
@@ -152,13 +152,13 @@ div.slideWrap > div {
     font-family: Arial;
     color: white;
 
-    left: 90%;
+    left: 84%;
     top: 90%;
     height: 3%;
     width: auto;
 }
 
-.timer_container{
+.timer_container {
     position: absolute;
     box-sizing: border-box;
 
@@ -170,7 +170,7 @@ div.slideWrap > div {
     border: 1px solid black;
 }
 
-.timer_bar{
+.timer_bar {
     position: absolute;
     box-sizing: border-box;
 
