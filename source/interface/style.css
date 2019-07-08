@@ -249,3 +249,10 @@ body {
 .roverElement:hover {
 	box-shadow: inset 0px 0px 30px rgba(0, 191, 255, 0.5);
 }
+
+
+#topLeftControls {
+	position:absolute;
+	top:0px;
+	left:0px;
+}

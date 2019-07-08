@@ -390,6 +390,21 @@ export default class CommandHandler {
 
     cycleFollowStatus() {
         this.rover.cycleFollowStatus();
+        let img = this.followButton.querySelector("img");
+
+        switch (this.rover.follow_status) {
+            case consts.FOLLOW_STATUS.STOP:
+                img.setCameraButtonDisplay("src", "img/track.png")
+                break;
+            case consts.FOLLOW_STATUS.WHEELS:
+                img.setCameraButtonDisplay("src", "img/follow_wheels.png")
+                break;
+            case consts.FOLLOW_STATUS.GIMBAL:
+                img.setCameraButtonDisplay("src", "img/follow_camera.png")
+                break;
+        }
+
+
         //TODO update visual for follow status
     }
 
