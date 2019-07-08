@@ -31,4 +31,6 @@ source/interface/\.fuse_hidden0000088000000009
 
 source/server/server_proxy/\.fuse_hidden0000250500000001
 
+source/server/server_rover/raspberry_server/rover_data.json
+
 *.sdp

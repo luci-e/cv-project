@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <!-- Insert Title Here. --> 
+    <title>Shear Heart Attack</title>
+
+    <meta name="author" content="Emiliano">
+    <link rel="stylesheet" href="css/style.css?v=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script>
+    window.jQuery || document.write('<script src="js/jquery.min.js">\x3C/script>')
+    </script>
+    <script type="text/javascript" src="js/script.js"></script>
+</head>
+
+<body>
+   
+    <div id="slide_container">
+        <!-- This is the cover slide There should be only one. --> 
+        <div class="slideWrap" id="cover_slide">
+            <div class="slide_content">
+                <div id="cover_title">A Flexible Framework for Remote Controllable Cameras</div>
+                <div id="cover_advisor">
+                    Computer Vision
+                    <br> 2018-2019
+                </div>
+                <div id="cover_candidate"> Emiliano Luci
+                    <br> Federico Trombetti </div>
+            </div>
+        </div>
+
+        <!-- This is an inner slide There can be as many as you like. --> 
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Introduction
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>We present a framework for the remote control of cameras through a web interface.</li>
+                        <li>Each remote unit exposes its capabilities to the interface which adapts to reflect that.</li>
+                        <li>The presented units let the user can control the yaw and pitch of the camera as well
+                            as moving it around.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Introduction (1)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The units are also equipped with white LEDs for illumination and a low power Laser to annoy people.</li>
+                        <li>The control of the cameras is either manual or automatic.</li>
+                        <li>The system can perform simple computer vision tasks on the cameras' streams.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Architecture
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The system is divided into 3 layers: the remote units, the server and the interface.</li><br>
+                    </ul>
+                    <img src="img/sha_architecture.png" >
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Architecture (1)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The system is such that most of the heavy computations are delegated to the central server.</li>
+                        <li>This lets the remote units be extremely simple since the only complexity required is them being able to stream the video feed.</li>
+                        <li>While the remote units and server being in the same network is not strictly required it is quite useful in term of latencies.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Remote Unit
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The remote unit streams the camera on the network and responds to user commands that it receives from the server.</li>
+                    </ul>
+                    <img src="img/unit_architecture.png" >
+
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Remote Unit (1)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Each unit runs a python server which acts as a coordinator between the various data streams.</li>
+                    </ul>
+                    <img src="img/unit_software.png" >
+
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Remote Unit (2)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The raw video stream is encoded by ffmpeg to MPEG2 and encpsulated in rtp.</li>
+                        <li>The encoded video is broadcast on a multicast address rtp://239.0.0.x</li>
+                        <li>The unit initiates the connection with the server advertising its capabilities as well as sending it
+                        information about the stream (basically sending it the sdp file generated by ffmpeg).</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Remote Unit (3)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The commands sent from the clients are forwarded to the correct unit which then sends them
+                            to the microcontroller via serial interface.</li>
+                        <li>The microcontroller implements a simple server which parses the commands and executes them.</li>
+                        <li>The microcontroller chosen  for our units is an Atmega328p but the only requirement is that
+                        it implements the protocol.</li>
+                    </ul>
+
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Central Server
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The central server acts as a coordinator between clients and remote units. It also performs the vision tasks.</li>
+                    </ul>
+                    <img src="img/server_software.png" >
+
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Central Server (1)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The server accepts registration requests from the remote units it then starts processing the video streams.</li>
+                        <li>The server parses commands from the client and either executes them or forwards them to the destination unit.</li>
+                        <li>The server performs vision tasks by using the OpenCV libraries.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Central Server (2)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The encoded video is read from the multicast address. It is decoded by ffmpeg. The raw pictures are processed by OpenCV.</li>
+                        <li>The processed pictures are then encoded again by ffmpeg in the MPEG1 format and sent to the requesting clients.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Central Server (3)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The commands received by the clients are first parsed. If the command is meant to be executed by the server ( the client can request
+                        for example to list all the avaiable remote units) the server replies immediately. Otherwise it just forwards them to the remote unit to which
+                        the command is addressed.</li>
+                        <li>All the exchanged messages are in plain text json.</li>
+                        <li>As for most IoT applications the 's' stands for security.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Central Server (3)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Commands acting on a stream are global. That is the streams are shared between the clients</li>
+                        <li>Commands are processed in a sequential fashion regardless of the source.</li>
+                        <li>Praise Helix.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Web Client
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The client initiates the connection with the central server.</li>
+                        <li>The protocol defines that the client identifies itself and ask for a list of the available units.</li>
+                        <li>After the clients selects a unit all successive commands will be sent to that remote unit.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Web Client (1)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The server informs the clients of the capabilities of the remote unit as well as the format of the video stream</li>
+                    </ul>
+                    <img src="img/client_software.png" >
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Web Client (2)
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>The Web Client uses JS to decode the video stream and display it on an HTML canvas.</li>
+                        <li>This limits the encoding to MPEG1 since it's mostly all it can handle.</li>
+                        <li>However since anyone can implement the protocol it's possible that a future iteration may
+                            choose from multiple encodings to make use of hardware acceleration.</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+        <div class="slideWrap slideWrap-none inner_slide">
+            <div class="slide_content">
+                <div class="inner_title_top">
+                    Title
+                </div>
+                <div class="slide_text">
+                    <ul>
+                        <li>Lorem Ipsum Dolor Sit Amet</li>
+                    </ul>
+                </div>
+                <div class="timer_container">
+                    <div class="timer_bar" id="timer_bar_0" data-maxTime="30"></div>
+                </div>
+                <div class="inner_title_bot"></div>
+                <div class="inner_date"></div>
+                <div class="inner_pageno"></div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
