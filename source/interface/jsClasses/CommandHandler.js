@@ -394,15 +394,15 @@ export default class CommandHandler {
 
         switch (this.rover.follow_status) {
             case consts.FOLLOW_STATUS.STOP:
-                img.setCameraButtonDisplay("src", "img/track.png");
+                img.setAttribute("src", "img/track.png");
                 this.followButton.style.backgroundPosition="0px 0px";
                 break;
             case consts.FOLLOW_STATUS.WHEELS:
-                img.setCameraButtonDisplay("src", "img/follow_wheels.png");
+                img.setAttribute("src", "img/wheel_follow.png");
                 this.followButton.style.backgroundPosition="-140px 0px";
                 break;
             case consts.FOLLOW_STATUS.GIMBAL:
-                img.setCameraButtonDisplay("src", "img/follow_camera.png");
+                img.setAttribute("src", "img/camera_follow.png");
                 this.followButton.style.backgroundPosition="-140px 0px";
                 break;
         }
