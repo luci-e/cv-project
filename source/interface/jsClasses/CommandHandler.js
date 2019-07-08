@@ -30,6 +30,7 @@ export default class CommandHandler {
         this.speedSlider = document.getElementById("speedSlider");
         this.speedTic = document.getElementById("speedTic");
 
+        this.trackFaceButton = document.getElementById('trackFaces');
         this.followButton = document.getElementById('targetFollow');
         this.laserButton = document.getElementById('laser');
         this.lightButton = document.getElementById('lights');
@@ -143,8 +144,15 @@ export default class CommandHandler {
         this.lightButton.onclick = function (e) {
             self.cycleLightStatus();
         };
+
         this.lightButton.onmousewheel = function (e) {
             self.adjustLight(e.deltaY);
+        };
+
+
+        this.rover.trackStatusChangeCb = function(){ self.updateTrackingGraphics() };
+        this.trackFaceButton.onclick = function (e) {
+            self.toggleTrackingFaces();
         };
 
         // console.log(this.movementControls);
@@ -395,37 +403,30 @@ export default class CommandHandler {
         switch (this.rover.follow_status) {
             case consts.FOLLOW_STATUS.STOP:
                 img.setAttribute("src", "img/track.png");
-                this.followButton.style.backgroundPosition="0px 0px";
+                this.followButton.style.backgroundPosition = "0px 0px";
                 break;
             case consts.FOLLOW_STATUS.WHEELS:
                 img.setAttribute("src", "img/wheel_follow.png");
-                this.followButton.style.backgroundPosition="-140px 0px";
+                this.followButton.style.backgroundPosition = "-140px 0px";
                 break;
             case consts.FOLLOW_STATUS.GIMBAL:
                 img.setAttribute("src", "img/camera_follow.png");
-                this.followButton.style.backgroundPosition="-140px 0px";
+                this.followButton.style.backgroundPosition = "-140px 0px";
                 break;
         }
-
-
-        //TODO update visual for follow status
-    }
-
-    stopTracking() {
-
     }
 
     cycleLaserStatus() {
         this.rover.toggleLaser();
         let img = this.laserButton.querySelector("img");
 
-        if(this.rover.laser_status === consts.LASER_STATUS.OFF ){
+        if (this.rover.laser_status === consts.LASER_STATUS.OFF) {
             img.setAttribute("src", "img/laser_off.png");
-            this.laserButton.style.backgroundPosition="0px 0px";
+            this.laserButton.style.backgroundPosition = "0px 0px";
 
-        }else{
+        } else {
             img.setAttribute("src", "img/laser_on.png");
-            this.laserButton.style.backgroundPosition="-140px 0px";
+            this.laserButton.style.backgroundPosition = "-140px 0px";
         }
     }
 
@@ -434,24 +435,69 @@ export default class CommandHandler {
 
         let img = this.lightButton.querySelector("img");
 
-        if(this.rover.light_status === consts.LIGHT_STATUS.OFF ){
+        if (this.rover.light_status === consts.LIGHT_STATUS.OFF) {
             img.setAttribute("src", "img/light_off.png")
             img.style.opacity = "1";
-            this.lightButton.style.backgroundPosition="0px 0px";
-        }else{
+            this.lightButton.style.backgroundPosition = "0px 0px";
+        } else {
             img.setAttribute("src", "img/light_on.png")
             img.style.opacity = String(this.rover.light_intensity / 255);
-            this.lightButton.style.backgroundPosition="-140px 0px";
+            this.lightButton.style.backgroundPosition = "-140px 0px";
         }
 
     }
 
-    adjustLight(delta){
+    adjustLight(delta) {
         let img = this.lightButton.querySelector("img");
         this.rover.adjustLight(delta);
         img.style.opacity = String(Math.max((this.rover.light_intensity / 255), 0.1));
     }
 
+
+
+    toggleTrackingFaces() {
+        if (this.rover.tracking_status != consts.TRACKING_STATUS.FACES) {
+            this.rover.sendTrackFacesMsg();
+            this.updateTrackingGraphics();
+        } else {
+            this.stopTracking();
+        }
+    }
+
+    updateTrackingGraphics(){
+        switch(this.rover.tracking_status){
+            case consts.TRACKING_STATUS.STOP:{
+                let img = this.followButton.querySelector("img");
+                img.setAttribute("src", "img/track.png");
+                this.followButton.style.backgroundPosition = "0px 0px";
+
+                img = this.trackFaceButton.querySelector("img");
+                img.setAttribute("src", "img/track_face_off.png");
+                this.followButton.style.backgroundPosition = "0px 0px";
+                break;
+            }
+
+            case consts.TRACKING_STATUS.FACES:{
+                let img = this.trackFaceButton.querySelector("img");
+                img.setAttribute("src", "img/track_face_on.png");
+                this.followButton.style.backgroundPosition = "-140x 0px";
+                break;
+            }
+
+            case consts.TRACKING_STATUS.CUSTOM:{
+                let img = this.trackFaceButton.querySelector("img");
+                img.setAttribute("src", "img/track_face_off.png");
+                this.followButton.style.backgroundPosition = "0px 0px";
+                break;
+            }
+
+        }
+    }
+
+    stopTracking(){
+        this.rover.sendStopTrackingMsg();
+        this.updateTrackingGraphics();
+    }
 }
 
 /*this.up.ontouchstart = function() {

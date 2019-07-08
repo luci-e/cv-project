@@ -152,7 +152,7 @@ class VideoCaptureTreading:
 
 class RoverHandler:
 
-    def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='csrt'):
+    def __init__(self, hello_cmd, cv_helper, reader, writer, tracker_name='medianflow'):
         self.rover_id = hello_cmd['rover_id']
         self.rover_data = hello_cmd['rover_data']
         self.description = self.rover_data['description']
@@ -232,10 +232,13 @@ class RoverHandler:
         self.tracking_initialized = True
 
     def track_roi(self, frame):
-        self.success, self.box = self.tracker.update(frame)
+
+
+        self.success, newBox = self.tracker.update(frame)
 
         # check to see if the tracking was a success
         if self.success:
+            self.box = newBox
             (x, y, w, h) = [int(v) for v in self.box]
             cv2.rectangle(frame, (x, y), (x + w, y + h),
                           (0, 255, 0), 2)
@@ -306,7 +309,8 @@ class RoverHandler:
         move_y = abs(self.delta_y) > self.movement_follow_y_threshold
 
         delta_area = self.current_area_percent - self.initial_area_percent
-        #print(f'Delta area: {delta_area}')
+        self.initial_area_percent = (0.7 * self.current_area_percent + 0.3 * self.initial_area_percent) / 2
+        print(f'Delta area: {delta_area}')
 
         if delta_area < self.follow_area_threshold:
             self.last_areas.append(abs(delta_area))
@@ -391,10 +395,11 @@ class RoverHandler:
                 elif self.following_wheels and not self.following_camera:
                     await self.follow_move_wheels()
                 elif self.following_wheels and self.following_camera:
-                    pass
+                    await self.follow_move_wheels()
 
-    def stop_tracking_roi(self):
+    async def stop_tracking_roi(self):
         if self.tracking_custom or self.tracking_face:
+            await self.reset_follow()
             self.tracking_face = False
             self.tracking_custom = False
             self.following_wheels = False
@@ -402,14 +407,16 @@ class RoverHandler:
             self.init_bb = None
             self.initial_area_percent = 0.0
 
-    def stop_tracking_custom(self):
+    async def stop_tracking_custom(self):
+        await self.reset_follow()
         self.tracking_custom = False
         self.following_wheels = False
         self.following_camera = False
         self.init_bb = None
         self.initial_area_percent = 0.0
 
-    def stop_tracking_face(self):
+    async def stop_tracking_face(self):
+        await self.reset_follow()
         self.tracking_face = False
         self.following_wheels = False
         self.following_camera = False
@@ -417,14 +424,12 @@ class RoverHandler:
         self.initial_area_percent = 0.0
 
     async def follow(self, wheels=False, camera=False):
+        if self.has_wheels:
+            self.following_wheels = wheels
+        if self.has_gimbal:
+            self.following_camera = camera
 
-        if self.tracking_custom ^ self.tracking_face:
-            if self.has_wheels:
-                self.following_wheels = wheels
-            if self.has_gimbal:
-                self.following_camera = camera
-
-            await self.reset_follow()
+        await self.reset_follow()
 
     async def reset_follow(self):
         if not self.following_camera:
@@ -445,17 +450,19 @@ class RoverHandler:
 
         if roi[0] > 0 and roi[1] > 0 and roi[2] > 0 and roi[3] > 0:
             self.initialize_bb(tuple(roi))
+            self.tracking_face = False
             self.tracking_custom = True
             self.tracking_initialized = False
 
     async def cmd_stop_tracking(self, cmd):
         if self.tracking_custom:
-            self.stop_tracking_custom()
+            await self.stop_tracking_custom()
         elif self.tracking_face:
-            self.stop_tracking_face()
+            await self.stop_tracking_face()
 
     async def cmd_track_faces(self, cmd):
         self.tracking_face = True
+        self.tracking_custom = False
         self.tracking_initialized = False
 
     async def cmd_follow(self, cmd):
@@ -463,7 +470,7 @@ class RoverHandler:
         await self.follow(params['wheels'], params['cam'])
 
     async def do_tracking(self, frame):
-        if self.tracking_initialized:
+        if (self.tracking_face or self.tracking_custom) and self.tracking_initialized:
             self.track_roi(frame)
             await self.follow_roi()
         else:

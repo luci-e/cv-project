@@ -14,7 +14,7 @@ export default class RoverHandler {
 
         this.rovers = [];
         this.currentRoverId = null;
-        this.roverData = null
+        this.roverData = null;
 
         this.cmd_socket = null;
         this.stream_socket = null;
@@ -32,8 +32,6 @@ export default class RoverHandler {
 
         this.currentDirection = consts.ROVER_DIRECTION.STOP;
         this.currentCamDirection = consts.CAM_DIRECTION.STOP;
-
-        this.commandHandler.bindCommands(this);
 
         if (createTab !== false) {
             this.addToWindow();
@@ -53,6 +51,7 @@ export default class RoverHandler {
         this.w = this.overlay_canvas.width;
         this.h = this.overlay_canvas.height;
 
+        this.trackStatusChangeCb = null;
         this.tracking_status = consts.TRACKING_STATUS.STOP;
         this.follow_status = consts.FOLLOW_STATUS.STOP;
 
@@ -61,6 +60,8 @@ export default class RoverHandler {
         this.laser_status = consts.LASER_STATUS.OFF;
         this.light_status = consts.LIGHT_STATUS.OFF;
         this.light_intensity = 125;
+
+        this.commandHandler.bindCommands(this);
 
         //this.drawCrosshHair();
 
@@ -500,7 +501,6 @@ export default class RoverHandler {
     }
 
     updateFollowStatus() {
-
         let wheels = this.follow_status === consts.FOLLOW_STATUS.WHEELS;
         let cam = this.follow_status === consts.FOLLOW_STATUS.GIMBAL;
 
@@ -540,8 +540,34 @@ export default class RoverHandler {
         this.updateFollowStatus();
     }
 
+    sendStopTrackingMsg(){
+        this.tracking_status = consts.TRACKING_STATUS.STOP;
+        this.follow_status = consts.FOLLOW_STATUS.STOP;
+
+        let msg = {
+            cmd: "stop_tracking",
+            params: {}
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
+
+    sendTrackFacesMsg(){
+        this.tracking_status = consts.TRACKING_STATUS.FACES;
+
+        let msg = {
+            cmd: "track_faces",
+            params: {}
+        };
+
+        this.lastCtrlMsg = msg;
+        this.sendCtrlMsg(msg);
+    }
 
     sendTrackMsg() {
+        this.tracking_status = consts.TRACKING_STATUS.CUSTOM;
+        this.trackStatusChangeCb();
 
         let x = Math.min(this.roi.x, this.currX);
         let y = Math.min(this.roi.y, this.currY);
@@ -638,7 +664,6 @@ export default class RoverHandler {
 
 
     draw_current_roi() {
-
         this.overlay_ctx.strokeStyle = LINE_COLOR;
         this.overlay_ctx.lineWidth = LINE_WIDTH;
 
